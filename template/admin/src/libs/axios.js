@@ -25,9 +25,10 @@ const addErrorLog = (errorInfo) => {
   if (!responseURL.includes('save_error_logger')) store.dispatch('addErrorLog', info);
 };
 
+import Setting from '@/setting';
 class HttpRequest {
   constructor(baseUrl = baseURL) {
-    this.baseUrl = 'http://admin.crmeb.net/adminapi';
+    this.baseUrl = baseUrl || Setting.apiBaseURL;
     this.queue = {};
   }
   getInsideConfig() {
