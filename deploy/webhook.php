@@ -1,62 +1,118 @@
 <?php
 /**
  * GitHub Webhook 部署触发器
- * 
- * 用法：
- * 1. 将此文件放在服务器上，如 /var/www/elect-mall/deploy/webhook.php
- * 2. 在 GitHub 仓库设置中添加 Webhook：
- *    - URL: http://你的服务器IP/deploy/webhook.php
- *    - Content type: application/json
- *    - Secret: 自己设置一个密钥（下面 WEBHOOK_SECRET 要一致）
- *    - Events: 勾选 "Push events"
- * 
- * 3. 确保 www-data 用户有权限执行 deploy/deploy.sh
+ * 支持通过 setup 模式设置Git Token
  */
 
 // ====== 配置 ======
-// 仓库根目录（服务器上代码存放的绝对路径）
 define('REPO_DIR', dirname(__DIR__));
-
-// Webhook 密钥（与 GitHub 上设置的 Secret 一致）
 define('WEBHOOK_SECRET', 'electmall2026');
-
-// 日志文件路径
 define('LOG_FILE', REPO_DIR . '/deploy/deploy.log');
-
-// 部署脚本路径
 define('DEPLOY_SCRIPT', REPO_DIR . '/deploy/deploy.sh');
+define('TOKEN_FILE', REPO_DIR . '/deploy/.git_token');
+define('GIT_REPO_URL', 'https://github.com/dengzongzong/elect-mall-2.git');
 
-// ====== 日志函数 ======
+// ====== 日志 ======
 function writeLog($message) {
     $time = date('Y-m-d H:i:s');
     $log = "[{$time}] {$message}" . PHP_EOL;
-    file_put_contents(LOG_FILE, $log, FILE_APPEND | LOCK_EX);
+    @file_put_contents(LOG_FILE, $log, FILE_APPEND | LOCK_EX);
+}
+
+// ====== Token管理 ======
+function getGitToken() {
+    if (file_exists(TOKEN_FILE)) {
+        return trim(file_get_contents(TOKEN_FILE));
+    }
+    $cmd = "cd " . escapeshellarg(REPO_DIR) . " && git remote get-url origin 2>/dev/null";
+    $url = trim(shell_exec($cmd));
+    if (preg_match('/https:\/\/[^:]+:(.+)@/', $url, $m)) {
+        return $m[1];
+    }
+    return '';
+}
+
+function saveGitToken($token) {
+    $token = trim($token);
+    if (empty($token)) return false;
+    $dir = dirname(TOKEN_FILE);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    return file_put_contents(TOKEN_FILE, $token) !== false;
+}
+
+// ====== 修复Git远程地址 ======
+function fixGitRemote() {
+    $repoDir = REPO_DIR;
+    $token = getGitToken();
+    if ($token) {
+        $gitUrl = "https://dengzongzong:{$token}@github.com/dengzongzong/elect-mall-2.git";
+    } else {
+        $gitUrl = GIT_REPO_URL;
+    }
+    
+    $cmd = "cd " . escapeshellarg($repoDir) . " && git remote get-url origin 2>/dev/null";
+    $current = trim(shell_exec($cmd));
+    
+    if ($current !== $gitUrl) {
+        writeLog("[FIX] 更新Git远程地址（带token认证）");
+        $cmd = "cd " . escapeshellarg($repoDir) . " && git remote set-url origin " . escapeshellarg($gitUrl) . " 2>&1";
+        shell_exec($cmd);
+        writeLog("[FIX] Git远程地址已更新");
+    } else {
+        writeLog("[FIX] Git远程地址正确，无需更新");
+    }
+}
+
+// ====== 清理锁文件 ======
+function cleanLockFile() {
+    $lockFile = REPO_DIR . '/deploy/deploy.lock';
+    if (file_exists($lockFile)) {
+        if (time() - filemtime($lockFile) > 300) {
+            @unlink($lockFile);
+            writeLog("[FIX] 已清理过期锁文件");
+        }
+    }
 }
 
 // ====== 验证签名 ======
 function verifySignature($payload, $signatureHeader) {
-    if (!WEBHOOK_SECRET) {
-        return true; // 未设置密钥，跳过验证（不推荐）
-    }
-    if (!$signatureHeader) {
-        return false;
-    }
+    if (!WEBHOOK_SECRET) return true;
+    if (!$signatureHeader) return false;
     $expected = 'sha256=' . hash_hmac('sha256', $payload, WEBHOOK_SECRET);
     return hash_equals($expected, $signatureHeader);
 }
 
-// ====== 获取请求体 ======
+// ====== 主流程 ======
+$action = $_GET['action'] ?? '';
+
+// 特殊模式：设置Token（通过URL参数一次性传入）
+if ($action === 'set_token') {
+    $token = $_GET['token'] ?? '';
+    if (empty($token)) {
+        echo json_encode(['status' => 'error', 'message' => 'Missing token parameter']);
+        exit;
+    }
+    if (saveGitToken($token)) {
+        // 立即更新远程地址
+        fixGitRemote();
+        echo json_encode(['status' => 'ok', 'message' => 'Token saved and git remote updated']);
+        writeLog("[SETUP] Token已保存并更新远程地址");
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Failed to save token']);
+    }
+    exit;
+}
+
+// 正常Webhook流程
 $payload = file_get_contents('php://input');
 $signature = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
 
-// 验证签名
 if (!verifySignature($payload, $signature)) {
     http_response_code(403);
     writeLog("[ERROR] 签名验证失败");
     die('Signature verification failed');
 }
 
-// 解析事件
 $event = $_SERVER['HTTP_X_GITHUB_EVENT'] ?? 'ping';
 
 if ($event === 'ping') {
@@ -71,28 +127,32 @@ if ($event !== 'push') {
     exit;
 }
 
-// 解析推送数据
 $data = json_decode($payload, true);
 $branch = $data['ref'] ?? '';
-$commits = $data['commits'] ?? [];
 
-// 只处理 main 分支
 if (strpos($branch, 'refs/heads/main') === false) {
     writeLog("[SKIP] 忽略分支: {$branch}");
     echo json_encode(['status' => 'skipped', 'message' => "Branch {$branch} ignored"]);
     exit;
 }
 
-writeLog("[TRIGGER] 收到 main 分支推送，共 " . count($commits) . " 个提交");
+writeLog("[TRIGGER] 收到 main 分支推送");
 
-// 异步执行部署脚本（不阻塞 Webhook 响应）
+// 修复Git远程地址
+fixGitRemote();
+
+// 清理过期锁文件
+cleanLockFile();
+
+// 异步执行部署脚本
 $logFile = LOG_FILE;
 $cmd = "nohup bash " . escapeshellarg(DEPLOY_SCRIPT) . " >> {$logFile} 2>&1 &";
 exec($cmd);
 
+writeLog("[TRIGGER] 部署脚本已启动");
+
 echo json_encode([
     'status' => 'ok',
-    'message' => 'Deployment triggered',
-    'branch' => $branch,
-    'commits' => count($commits)
+    'message' => 'Deployment triggered with git remote fix',
+    'branch' => $branch
 ]);

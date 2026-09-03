@@ -12,3 +12,5 @@
 /template/uni-app/unpackage/
 *.log
 .DS_Store.uploads/
+# Git Token文件（每台服务器独立配置）
+/deploy/.git_token
