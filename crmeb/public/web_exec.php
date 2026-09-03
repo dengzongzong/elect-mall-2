@@ -64,7 +64,7 @@ exec('git pull origin main 2>&1', $output);
 echo implode("\n", $output) . "\n\n";
 
 // 2. 更新Nginx配置
-echo "[2/4] 更新Nginx配置...\n";
+echo "[2/5] 更新Nginx配置...\n";
 ob_flush();
 flush();
 $src = '/var/www/elect-mall/deploy/elect-mall.conf';
