@@ -1,37 +1,49 @@
 <template>
   <div class="digikey-home">
-    <!-- Banner 轮播区域（全宽大图） -->
-    <div class="banner-section">
-      <div class="banner-container">
-        <client-only>
-          <div v-swiper:mySwiper="swiperOption">
-            <div class="swiper-wrapper">
-              <nuxt-link
-                :to="item.url === undefined ? '' : item.url"
-                class="swiper-slide"
-                v-for="(item, index) in swiperData"
-                :key="index"
-                v-show="index < 10"
-              >
-                <img :src="item.image" alt="banner" />
-              </nuxt-link>
+    <!-- Banner + 广告位 区域 -->
+    <div class="banner-ad-section container">
+      <div class="banner-ad-grid">
+        <!-- 左侧轮播图 -->
+        <div class="banner-container">
+          <client-only>
+            <div v-swiper:mySwiper="swiperOption">
+              <div class="swiper-wrapper">
+                <nuxt-link
+                  :to="item.url === undefined ? '' : item.url"
+                  class="swiper-slide"
+                  v-for="(item, index) in swiperData"
+                  :key="index"
+                  v-show="index < 5"
+                >
+                  <img :src="item.image" alt="banner" />
+                </nuxt-link>
+              </div>
+              <div
+                class="swiper-pagination paginationBanner"
+                slot="pagination"
+              ></div>
+              <div class="swiper-button-prev" slot="pagination"></div>
+              <div class="swiper-button-next" slot="pagination"></div>
             </div>
-            <div
-              class="swiper-pagination paginationBanner"
-              slot="pagination"
-            ></div>
-            <div class="swiper-button-prev" slot="pagination"></div>
-            <div class="swiper-button-next" slot="pagination"></div>
+          </client-only>
+        </div>
+        <!-- 右侧广告位（3-4个固定图片） -->
+        <div class="ad-container" v-if="homeAdList && homeAdList.length">
+          <div
+            class="ad-item"
+            v-for="(item, index) in homeAdList"
+            :key="index"
+          >
+            <nuxt-link :to="item.url ? item.url : '#'">
+              <img :src="item.pic" v-if="item.pic" alt="ad" />
+            </nuxt-link>
           </div>
-        </client-only>
+        </div>
       </div>
     </div>
 
     <!-- 产品分类入口 -->
     <div class="container category-section">
-      <div class="section-title">
-        <h2>产品分类</h2>
-      </div>
       <div class="category-grid acea-row row-top" @mouseleave="leave()">
         <div class="category-sidebar">
           <div
@@ -298,6 +310,7 @@ export default {
       seen: false,
       current: -1,
       swiperData: [],
+      homeAdList: [],
       categoryList: [],
       categoryCurrent: {},
       datatime: 0,
@@ -348,12 +361,13 @@ export default {
     };
   },
   async asyncData({ app }) {
-    let [categoryMsg, seckillMsg, indexMsg, bannerMsg] = await Promise.all([
+    let [categoryMsg, seckillMsg, indexMsg, bannerMsg, adMsg] = await Promise.all([
       //获取banner分类
       app.$axios.get("/category"),
       app.$axios.get("/seckill/index"),
       app.$axios.get("/index"),
-      app.$axios.get("/pc/get_banner")
+      app.$axios.get("/pc/get_banner"),
+      app.$axios.get("/pc/get_home_ad")
     ]);
     return {
       categoryList: categoryMsg.data,
@@ -365,6 +379,7 @@ export default {
       newGoods: indexMsg.data.info.firstList,
       // logoUrl: indexMsg.data.logoUrl,
       swiperData: bannerMsg.data.list,
+      homeAdList: adMsg.data.list || [],
       siteName: indexMsg.data.site_name
     };
   },
@@ -521,28 +536,35 @@ export default {
   font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
   font-weight: bold;
   min-height: 100vh;
-  padding: 0;
+  padding: 20px 0 0 0;
   margin: 0;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 0 20px 0;
 }
 
-/* Banner 轮播区域 */
-.banner-section {
-  width: 100%;
-  background-color: #fff;
-  margin-bottom: 24px;
+/* Banner + 广告位 区域 */
+.banner-ad-section {
+  margin-bottom: 20px;
 }
 
+.banner-ad-grid {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* 左侧轮播图 */
 .banner-container {
-  width: 100%;
-  height: 400px;
+  flex: 1;
+  height: 380px;
   position: relative;
   overflow: hidden;
+  border-radius: 4px;
+  background-color: #fff;
 
   .swiper-slide {
     img {
@@ -553,21 +575,42 @@ export default {
   }
 }
 
-/* 产品分类入口 */
-.category-section {
-  margin-bottom: 24px;
+/* 右侧广告位 */
+.ad-container {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 
-  .section-title {
-    margin-bottom: 16px;
+  .ad-item {
+    flex: 1;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: #fff;
+    transition: box-shadow 0.3s;
 
-    h2 {
-      font-size: 20px;
-      color: #333;
-      font-weight: bold;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e93323;
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    a {
+      display: block;
+      width: 100%;
+      height: 100%;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
     }
   }
+}
+
+/* 产品分类入口 */
+.category-section {
+  margin-bottom: 20px;
 
   .category-grid {
     background-color: #fff;
@@ -650,7 +693,7 @@ export default {
 
 /* 特色内容区域 */
 .featured-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .featured-grid {
     display: flex;
@@ -818,7 +861,7 @@ export default {
   background-color: #fff;
   border-radius: 4px;
   padding: 24px 0;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .tools-grid {
     display: flex;
@@ -866,7 +909,7 @@ export default {
 
 /* 特色产品区域 */
 .featured-products-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .section-header {
     display: flex;
@@ -978,7 +1021,7 @@ export default {
 
 /* 分类产品区域 */
 .category-products-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .category-block {
     background-color: #fff;
@@ -1130,7 +1173,7 @@ export default {
   background-color: #fff;
   border-top: 1px solid #eaeaea;
   padding: 40px 0;
-  margin-top: 40px;
+  margin-top: 20px;
 
   .about-content {
     display: flex;

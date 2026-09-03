@@ -47,6 +47,16 @@ class HomeController
     }
 
     /**
+     * PC端首页右侧广告位
+     * @return mixed
+     */
+    public function getHomeAd()
+    {
+        $list = sys_data('pc_home_ad');
+        return app('json')->success(compact('list'));
+    }
+
+    /**
      * 首页分类尚品
      * @return mixed
      */

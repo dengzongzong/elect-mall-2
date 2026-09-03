@@ -28,6 +28,7 @@ Route::group('pc', function () {
         Route::get('get_pay_vip_code', 'pc.HomeController/getPayVipCode')->name('getPayVipCode')->option(['real_name' => '获取付费会员购买页面二维码']);//获取付费会员购买页面二维码
         Route::get('get_product_phone_buy', 'pc.HomeController/getProductPhoneBuy')->name('getProductPhoneBuy')->option(['real_name' => '手机购买跳转url配置']);//手机购买跳转url配置
         Route::get('get_banner', 'pc.HomeController/getBanner')->name('getBanner')->option(['real_name' => 'PC首页轮播图']);//PC首页轮播图
+        Route::get('get_home_ad', 'pc.HomeController/getHomeAd')->name('getHomeAd')->option(['real_name' => 'PC首页右侧广告位']);//PC首页右侧广告位
         Route::get('get_category_product', 'pc.HomeController/getCategoryProduct')->name('getCategoryProduct')->option(['real_name' => '首页分类尚品']);//首页分类尚品
         Route::get('get_products', 'pc.ProductController/getProductList')->name('getProductList')->option(['real_name' => '商品列表']);//商品列表
         Route::get('get_product_code/:product_id/[:type]', 'pc.ProductController/getProductRoutineCode')->name('getProductRoutineCode')->option(['real_name' => '商品详情小程序二维码']);//商品详情小程序二维码
