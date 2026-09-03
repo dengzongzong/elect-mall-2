@@ -112,4 +112,67 @@ class HomeController
         }
         return app('json')->success(['url' => $codeUrl ?: '']);
     }
+
+    /**
+     * BOM配单 - 处理粘贴文本
+     * @param Request $request
+     * @return mixed
+     */
+    public function bomProcessText(Request $request)
+    {
+        $data = $request->postMore([
+            ['text', ''],
+            ['only_self', 0]
+        ]);
+        if (!$data['text']) {
+            return app('json')->fail('请输入物料清单');
+        }
+        // 解析BOM文本，按行拆分
+        $lines = explode("\n", trim($data['text']));
+        $items = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            $parts = preg_split('/[\s,\t]+/', $line);
+            if (count($parts) >= 1) {
+                $items[] = [
+                    'part_no' => $parts[0],
+                    'spec' => count($parts) > 1 ? $parts[1] : '',
+                    'qty' => count($parts) > 2 ? $parts[2] : '1',
+                ];
+            }
+        }
+        return app('json')->success(compact('items'));
+    }
+
+    /**
+     * BOM配单 - 上传文件
+     * @param Request $request
+     * @return mixed
+     */
+    public function bomUpload(Request $request)
+    {
+        $file = $request->file('file');
+        $onlySelf = $request->post('only_self', 0);
+        if (!$file) {
+            return app('json')->fail('请上传BOM文件');
+        }
+        // 读取文件内容
+        $contents = file_get_contents($file->getPathname());
+        $lines = explode("\n", trim($contents));
+        $items = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            $parts = preg_split('/[\s,\t,，]+/', $line);
+            if (count($parts) >= 1) {
+                $items[] = [
+                    'part_no' => $parts[0],
+                    'spec' => count($parts) > 1 ? $parts[1] : '',
+                    'qty' => count($parts) > 2 ? $parts[2] : '1',
+                ];
+            }
+        }
+        return app('json')->success(compact('items'));
+    }
 }
