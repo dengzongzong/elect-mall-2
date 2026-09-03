@@ -188,6 +188,25 @@
                 </div>
               </div>
             </div>
+            <!-- 阶梯价格表 -->
+            <div class="tiered-pricing" v-if="showTieredPricing">
+              <div class="tiered-label">阶梯价格</div>
+              <div class="tiered-table">
+                <div class="tiered-row tiered-header">
+                  <span class="tiered-cell">数量</span>
+                  <span class="tiered-cell">单价</span>
+                </div>
+                <div
+                  class="tiered-row"
+                  v-for="(tier, idx) in tieredPricing"
+                  :key="idx"
+                  :class="{ active: currentTierPrice && currentTierPrice.min_qty === tier.min_qty }"
+                >
+                  <span class="tiered-cell">{{ tier.min_qty }}{{ tier.max_qty > 0 ? '-' + tier.max_qty : '+' }}</span>
+                  <span class="tiered-cell price">￥{{ tier.price }}</span>
+                </div>
+              </div>
+            </div>
             <div class="attribute">
               <div
                 v-for="(item, index) in productAttr"
@@ -543,6 +562,7 @@ export default {
         real_price: 0,
       },
       specUnique: "",
+      tieredPricing: [],
     };
   },
   computed: {
@@ -561,6 +581,21 @@ export default {
         }
         return value;
       });
+    },
+    // 当前数量对应的阶梯价格
+    currentTierPrice() {
+      if (!this.tieredPricing || !this.tieredPricing.length) return null;
+      let qty = this.count || 1;
+      for (let tier of this.tieredPricing) {
+        if (qty >= tier.min_qty && (tier.max_qty === 0 || qty <= tier.max_qty)) {
+          return tier;
+        }
+      }
+      return null;
+    },
+    // 是否展示阶梯价格表
+    showTieredPricing() {
+      return this.tieredPricing && this.tieredPricing.length > 0;
     },
   },
   watch: {
@@ -639,6 +674,7 @@ export default {
       datatime: Number(query.time),
       phoneBuy: phoneBuy.data,
       replyCount: replyInfo.data.sum_count,
+      tieredPricing: goods.data.tiered_pricing || [],
     };
   },
   head() {
@@ -1846,5 +1882,58 @@ export default {
   color: #999;
   font-size: 12px;
   margin-top: 14px;
+}
+
+/* 阶梯价格 */
+.tiered-pricing {
+  margin-top: 18px;
+  padding: 0 20px;
+
+  .tiered-label {
+    font-size: 12px;
+    color: #5a5a5a;
+    margin-bottom: 8px;
+  }
+
+  .tiered-table {
+    width: 100%;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .tiered-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #666;
+    border-bottom: 1px solid #f5f5f5;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &.tiered-header {
+      background-color: #fafafa;
+      font-weight: bold;
+      color: #333;
+    }
+
+    &.active {
+      background-color: #fff5f4;
+      color: #e93323;
+      font-weight: bold;
+
+      .price {
+        color: #e93323;
+      }
+    }
+  }
+
+  .tiered-cell.price {
+    color: #e93323;
+    font-weight: bold;
+  }
 }
 </style>

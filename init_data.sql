@@ -204,3 +204,27 @@ CREATE TABLE IF NOT EXISTS `eb_partner_apply` (
     `status` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '状态 0=待处理 1=已联系 2=已完成',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商合作申请表';
+
+-- ============================================================
+-- 商品阶梯价格表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `eb_store_product_tiered_pricing` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `product_id` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '商品ID',
+    `unique_id` varchar(64) NOT NULL DEFAULT '' COMMENT 'SKU唯一值(空表示所有SKU)',
+    `min_qty` int(10) unsigned NOT NULL DEFAULT 1 COMMENT '起始数量',
+    `max_qty` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '结束数量(0=无限)',
+    `price` decimal(10,2) unsigned NOT NULL DEFAULT 0.00 COMMENT '阶梯价格',
+    `is_del` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否删除',
+    `add_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_product_id` (`product_id`),
+    KEY `idx_unique_id` (`unique_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品阶梯价格表';
+
+-- 演示阶梯价格数据（为部分商品添加示例数据）
+-- 为product_id=1的商品添加阶梯价格
+INSERT INTO `eb_store_product_tiered_pricing` (`product_id`, `unique_id`, `min_qty`, `max_qty`, `price`, `is_del`) VALUES
+(1, '', 1, 9, 1.80, 0),
+(1, '', 10, 99, 1.50, 0),
+(1, '', 100, 0, 1.20, 0);

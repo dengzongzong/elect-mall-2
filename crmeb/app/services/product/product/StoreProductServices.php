@@ -1657,6 +1657,26 @@ class StoreProductServices extends BaseServices
             'visit_time' => date('Y-m-d H:i:s'),
         ]]);
 
+        // 获取阶梯价格
+        $data['tiered_pricing'] = [];
+        try {
+            $tieredDb = app()->db->table('eb_store_product_tiered_pricing');
+            $tieredList = $tieredDb->where('product_id', $id)
+                ->where('is_del', 0)
+                ->order('min_qty ASC')
+                ->select()
+                ->toArray();
+            foreach ($tieredList as $tier) {
+                $data['tiered_pricing'][] = [
+                    'min_qty' => (int)$tier['min_qty'],
+                    'max_qty' => (int)$tier['max_qty'],
+                    'price' => (float)$tier['price'],
+                ];
+            }
+        } catch (\Exception $e) {
+            // 表不存在时忽略
+        }
+
         return $data;
     }
 
