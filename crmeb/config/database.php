@@ -41,10 +41,12 @@ return [
             'hostport'        => Env::get('database.hostport', '3306'),
             // 连接dsn
             'dsn'             => '',
-            // 数据库连接参数
-            'params'          => [],
-            // 数据库编码默认采用utf8
-            'charset'         => Env::get('database.charset', 'utf8'),
+            // 数据库连接参数（强制UTF-8编码）
+            'params'          => [
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+            ],
+            // 数据库编码默认采用utf8mb4
+            'charset'         => Env::get('database.charset', 'utf8mb4'),
             // 数据库表前缀
             'prefix'          => Env::get('database.prefix', 'eb_'),
             // 数据库调试模式

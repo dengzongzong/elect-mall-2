@@ -12,6 +12,10 @@
 // [ 应用入口文件 ]
 namespace think;
 
+// 强制全局UTF-8编码
+header('Content-Type: text/html; charset=utf-8');
+ini_set('default_charset', 'UTF-8');
+
 if ('7.1.0' > phpversion()) {
     exit('您的php版本过低，不能安装本软件，兼容php版本7.1~7.4，谢谢！');
 }

@@ -96,6 +96,18 @@ if [ -d "${PROJECT_DIR}/template/admin/dist" ]; then
     cp -rf "${PROJECT_DIR}/template/admin/dist/"* "${WEB_ROOT}/admin/" 2>/dev/null
     log "[5/6] Admin synced to ${WEB_ROOT}/admin/"
 fi
+# 同步crmeb/public目录下的PHP工具文件（fix_all.php, web_exec.php等）
+if [ -d "${PROJECT_DIR}/crmeb/public" ]; then
+    cd "${PROJECT_DIR}/crmeb/public"
+    # 只同步php文件，避免覆盖已有的前端文件
+    for php_file in *.php; do
+        if [ -f "$php_file" ]; then
+            cp "$php_file" "${WEB_ROOT}/" 2>/dev/null
+        fi
+    done
+    unset php_file
+    log "[5/6] crmeb/public PHP tools synced"
+fi
 
 # 6. 更新Nginx配置并重启服务
 log "[6/6] Update Nginx config & restart..."
