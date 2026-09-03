@@ -1,0 +1,10 @@
+(global["webpackJsonp"]=global["webpackJsonp"]||[]).push([["components/NavBar"],{"2ca5":function(t,e,n){"use strict";n.d(e,"b",(function(){return a})),n.d(e,"c",(function(){return o})),n.d(e,"a",(function(){}));var a=function(){var t=this.$createElement;this._self._c},o=[]},4227:function(t,e,n){"use strict";n.r(e);var a=n("2ca5"),o=n("70eb");for(var i in o)["default"].indexOf(i)<0&&function(t){n.d(e,t,(function(){return o[t]}))}(i);n("dc10");var u=n("828b"),r=Object(u["a"])(o["default"],a["b"],a["c"],!1,null,null,null,!1,a["a"],void 0);e["default"]=r.exports},"70eb":function(t,e,n){"use strict";n.r(e);var a=n("dd67"),o=n.n(a);for(var i in a)["default"].indexOf(i)<0&&function(t){n.d(e,t,(function(){return a[t]}))}(i);e["default"]=o.a},dc10:function(t,e,n){"use strict";var a=n("e6dbb"),o=n.n(a);o.a},dd67:function(t,e,n){"use strict";(function(t){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0;var n=t.getWindowInfo().statusBarHeight,a={name:"navbar",props:{custom:{type:Boolean,default:!1},fixed:{type:Boolean,default:!0},showEmpty:{type:Boolean,default:!0},isScrolling:{type:Boolean,default:!1},showBack:{type:Boolean,default:!1},titleText:{type:String,default:""},iconColor:{type:String,default:"#000000"},iconSize:{type:String,default:"40rpx"},iconWeight:{type:String,default:"bold"},textColor:{type:String,default:"#333"},textSize:{type:String,default:"34rpx"},textWeight:{type:String,default:"500"},bagColor:{type:String,default:"transparent"},showRight:{type:Boolean,default:!1}},data:function(){return{sysHeight:n}},methods:{back:function(){var e=getCurrentPages();e.length>1?t.navigateBack():t.switchTab({url:"/pages/index/index"})}}};e.default=a}).call(this,n("df3c")["default"])},e6dbb:function(t,e,n){}}]);
+;(global["webpackJsonp"] = global["webpackJsonp"] || []).push([
+    'components/NavBar-create-component',
+    {
+        'components/NavBar-create-component':(function(module, exports, __webpack_require__){
+            __webpack_require__('df3c')['createComponent'](__webpack_require__("4227"))
+        })
+    },
+    [['components/NavBar-create-component']]
+]);

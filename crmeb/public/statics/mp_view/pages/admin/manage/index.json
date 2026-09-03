@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "商家管理",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "nav-bar": "/components/NavBar",
+    "footer-page": "/pages/admin/components/footerPage/index"
+  }
+}

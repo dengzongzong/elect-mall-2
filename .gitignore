@@ -1,0 +1,14 @@
+/crmeb/runtime/*
+/crmeb/.env
+/crmeb/public/install.lock
+/crmeb/public/install/
+/node_modules/
+/template/pc/nuxt-dist/
+/template/pc/node_modules/
+/template/pc/package-lock.json
+/template/admin/node_modules/
+/template/admin/dist/
+/template/uni-app/node_modules/
+/template/uni-app/unpackage/
+*.log
+.DS_Store.uploads/
