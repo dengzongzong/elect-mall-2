@@ -1,157 +1,107 @@
 <template>
-  <div class="login">
-    <div class="wrapper_1200">
-      <div class="header acea-row row-between-wrapper" v-show="isShow">
-        <div class="acea-row row-middle">
-          <div class="icon" @click="goHome">
-            <img :src="info.logoUrl" />
-          </div>
-          <div class="name" @click="goHome">官方商城</div>
+  <div class="login-page">
+    <!-- 顶部导航 -->
+    <div class="login-header">
+      <div class="header-inner">
+        <nuxt-link to="/" class="logo-link">
+          <img :src="info.logoUrl" class="logo-img" />
+        </nuxt-link>
+      </div>
+    </div>
+
+    <!-- 登录主体 -->
+    <div class="login-body">
+      <div class="login-card">
+        <!-- 标签切换 -->
+        <div class="tab-bar">
+          <span class="tab-item" :class="{ active: current === 2 }" @click="current = 2">账号登录</span>
+          <span class="tab-item" :class="{ active: current === 1 }" @click="current = 1">免密码登录</span>
+          <span class="tab-item wx-tab" v-if="appidNum" @click="ewmLogin">
+            <span class="iconfont icon-weixindenglu1"></span> 微信登录
+          </span>
         </div>
-        <div class="acea-row row-middle">
-          <div class="item">
-            <span class="iconfont icon-pinzhongqiquan font-color"></span
-            >品种齐全
+
+        <!-- 免密码登录 / 手机号快速注册 -->
+        <div class="form-wrapper" v-show="current === 1">
+          <div class="form-group">
+            <label class="form-label">手机号</label>
+            <div class="input-wrap phone-input">
+              <span class="phone-prefix">+86</span>
+              <input type="text" placeholder="请输入手机号码" v-model="account" maxlength="11" class="form-input" />
+            </div>
           </div>
-          <div class="item">
-            <span class="iconfont icon-dijiachangxuan font-color"></span
-            >低价畅选
+          <div class="form-group">
+            <label class="form-label">验证码</label>
+            <div class="input-wrap code-input">
+              <input type="text" placeholder="请输入验证码" v-model="captcha" class="form-input" />
+              <button class="code-btn" :disabled="disabled" :class="{ on: disabled }" @click="getVerify">
+                {{ text }}
+              </button>
+            </div>
           </div>
-          <div class="item">
-            <span class="iconfont icon-zhengpinhanghuo font-color"></span
-            >正品行货
+          <div class="agree-row">
+            <el-checkbox v-model="agreement"></el-checkbox>
+            <span class="agree-text">我已阅读并同意<span class="agree-link" @click="agreementTap(4)">《用户协议》</span>和<span class="agree-link" @click="agreementTap(3)">《隐私协议》</span></span>
+          </div>
+          <button class="login-btn" @click="loginMobile">登录/注册</button>
+        </div>
+
+        <!-- 账号登录 -->
+        <div class="form-wrapper" v-show="current === 2">
+          <div class="form-group">
+            <label class="form-label">账号</label>
+            <div class="input-wrap">
+              <input type="text" placeholder="用户名/手机号码" v-model="account" class="form-input" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">密码</label>
+            <div class="input-wrap">
+              <input type="password" placeholder="密码" v-model="password" class="form-input" />
+            </div>
+          </div>
+          <div class="options-row">
+            <label class="auto-login">
+              <input type="checkbox" v-model="autoLogin" class="custom-checkbox" />
+              <span class="checkbox-text">下次自动登录</span>
+            </label>
+            <nuxt-link to="/forgot_password" class="forgot-link">忘记密码</nuxt-link>
+          </div>
+          <div class="agree-row">
+            <el-checkbox v-model="agreement"></el-checkbox>
+            <span class="agree-text">我已阅读并同意<span class="agree-link" @click="agreementTap(4)">《用户协议》</span>和<span class="agree-link" @click="agreementTap(3)">《隐私协议》</span></span>
+          </div>
+          <button class="login-btn" @click="loginH5">立即登录</button>
+          <div class="register-row">
+            <span class="no-account">还没有账号？</span>
+            <span class="register-link" @click="current = 1">立即注册</span>
           </div>
         </div>
       </div>
     </div>
-    <div class="loginBg min_wrapper_1200">
-      <div class="wrapper" v-show="current === 1">
-        <div class="title">
-          快速登录/注册
-          <!--@click="current = 3"-->
-          <span
-            @click="ewmLogin"
-            v-if="appidNum"
-            class="iconfont icon-weixindenglu1"
-          ></span>
-          <!-- <a :href="`https://open.weixin.qq.com/connect/qrconnect?appid=${appidNum}&redirect_uri=${hosts}&response_type=code&scope=snsapi_login&state=EqMkUDWh8F3euWlt23jHJ8ZJuaTAVPZyiKEoq5U0`" v-if="appidNum" class="iconfont icon-weixindenglu1"></a> -->
-        </div>
-        <div class="item phone acea-row row-middle">
-          <div class="number">+86</div>
-          <input type="text" placeholder="请输入手机号" v-model="account" />
-        </div>
-        <div class="item verificat acea-row row-between-wrapper">
-          <input type="text" placeholder="请输入验证码" v-model="captcha" />
-          <button
-            class="code font-color"
-            :disabled="disabled"
-            :class="disabled === true ? 'on' : ''"
-            @click="getVerify"
-          >
-            {{ text }}
-          </button>
-        </div>
-        <div class="isAgree">
-          <el-checkbox v-model="agreement"></el-checkbox
-          ><span class="agree"
-            >我已阅读并同意<span class="agreement" @click="agreementTap(4)"
-              >《用户协议》</span
-            >和<span class="agreement" @click="agreementTap(3)"
-              >《隐私协议》</span
-            ></span
-          >
-        </div>
-        <div class="signIn bg-color" @click="loginMobile">登录/注册</div>
-        <div class="fastLogin font-color" @click="current = 2">账号登录</div>
-      </div>
-      <div class="wrapper" v-show="current === 2">
-        <div class="title">
-          账号登录
-          <!--@click="current = 3"-->
-          <span
-            @click="ewmLogin"
-            v-if="appidNum"
-            class="iconfont icon-weixindenglu1"
-          ></span>
-          <!-- <a :href="`https://open.weixin.qq.com/connect/qrconnect?appid=${appidNum}&redirect_uri=${hosts}&response_type=code&scope=snsapi_login&state=EqMkUDWh8F3euWlt23jHJ8ZJuaTAVPZyiKEoq5U0`" v-if="appidNum" class="iconfont icon-weixindenglu1"></a> -->
-        </div>
-        <div class="item phone acea-row row-middle">
-          <div class="number">+86</div>
-          <input
-            type="text"
-            placeholder="请输入手机号"
-            maxlength="11"
-            v-model="account"
-          />
-        </div>
-        <div class="item pwd">
-          <input type="password" placeholder="请输入密码" v-model="password" />
-        </div>
-        <div class="isAgree">
-          <el-checkbox v-model="agreement"></el-checkbox
-          ><span class="agree"
-            >我已阅读并同意<span class="agreement" @click="agreementTap(4)"
-              >《用户协议》</span
-            >和<span class="agreement" @click="agreementTap(3)"
-              >《隐私协议》</span
-            ></span
-          >
-        </div>
-        <div class="signIn bg-color" @click="loginH5">登录</div>
-        <div class="fastLogin font-color" @click="current = 1">
-          快速登录/注册
-        </div>
-      </div>
-      <!--<div class="wxLogin" v-if="current === 3">-->
-      <!--<div class="title">扫码登录<div class="iconfont icon-zhanghaodenglu1" @click="current = 1"></div></div>-->
-      <!--<div class="wxCode">-->
-      <!--<div class="acea-row row-between-wrapper">-->
-      <!--<span class="iconfont icon-erweimabianjiao"></span>-->
-      <!--<span class="iconfont icon-erweimabianjiao right"></span>-->
-      <!--</div>-->
-      <!--<div class="pictrue">-->
-      <!--<img src="../assets/images/loginBg.jpg">-->
-      <!--</div>-->
-      <!--<div class="acea-row row-between-wrapper">-->
-      <!--<span class="iconfont icon-erweimabianjiao bottomL"></span>-->
-      <!--<span class="iconfont icon-erweimabianjiao right bottomR"></span>-->
-      <!--</div>-->
-      <!--</div>-->
-      <!--<div class="tip">请使用微信扫一扫登录</div>-->
-      <!--</div>-->
-    </div>
-    <div class="footer wrapper_1200">
-      <div>
+
+    <!-- 底部信息 -->
+    <div class="login-footer">
+      <div class="footer-inner">
         <span>联系电话：{{ info.contact_number }}</span>
-        <span class="adress">地址：{{ info.company_address }}</span>
+        <span class="footer-divider">|</span>
+        <span>地址：{{ info.company_address }}</span>
       </div>
-      <div class="record">
-        {{ info.copyright
-        }}<a href="https://beian.miit.gov.cn/" target="_blank" class="num">{{
-          info.record_No
-        }}</a>
+      <div class="footer-record">
+        {{ info.copyright }}<a href="https://beian.miit.gov.cn/" target="_blank" class="beian">{{ info.record_No }}</a>
       </div>
     </div>
-    <el-dialog
-      class="detail-bd"
-      :title="agreementTitle"
-      :visible.sync="userAgreement"
-      :show-close="false"
-      width="900px"
-      center
-    >
+
+    <!-- 协议弹窗 -->
+    <el-dialog class="detail-bd" :title="agreementTitle" :visible.sync="userAgreement" :show-close="false" width="900px" center>
       <div class="userAgree" v-html="agreementCon"></div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" @click="agreementClose">确 定</el-button>
       </span>
     </el-dialog>
-    <Verify
-      v-if="verifyModal"
-      @success="success"
-      captchaType="blockPuzzle"
-      :imgSize="{ width: '330px', height: '155px' }"
-      ref="verify"
-    ></Verify>
+
+    <!-- 验证码滑块 -->
+    <Verify v-if="verifyModal" @success="success" captchaType="blockPuzzle" :imgSize="{ width: '330px', height: '155px' }" ref="verify"></Verify>
   </div>
 </template>
 
@@ -173,12 +123,12 @@ export default {
       captcha: "",
       keyCode: "",
       info: "",
-      isShow: true,
       appidNum: "",
       hosts: "",
       codes: "",
       fromPath: "",
       agreement: false,
+      autoLogin: true,
       userAgreement: false,
       agreementCon1: "",
       agreementCon2: "",
@@ -206,9 +156,7 @@ export default {
     store.commit("isFooter", false);
   },
   head() {
-    return {
-      title: this.$store.state.titleCon
-    };
+    return { title: this.$store.state.titleCon };
   },
   created() {
     if (this.$auth.loggedIn) {
@@ -238,7 +186,6 @@ export default {
     },
     ewmLogin() {
       if (!this.agreement) return this.$message.error("请确认阅读用户协议");
-      // this.hosts 使用uri编码
       let hosts = encodeURIComponent(this.hosts);
       window.location.href = `https://open.weixin.qq.com/connect/qrconnect?appid=${this.appidNum}&redirect_uri=${hosts}&response_type=code&scope=snsapi_login&state=EqMkUDWh8F3euWlt23jHJ8ZJuaTAVPZyiKEoq5U0`;
     },
@@ -256,9 +203,6 @@ export default {
       this.userAgreement = false;
       this.agreement = true;
     },
-    goHome() {
-      this.$router.push({ path: "/" });
-    },
     async loginCode() {
       let that = this;
       await that.$auth
@@ -274,9 +218,7 @@ export default {
           }
           that.$cookies.remove("fromPath");
         })
-        .catch(err => {
-          // that.$layer.msg('登录失败');
-        });
+        .catch(err => {});
     },
     async loginH5() {
       let that = this;
@@ -319,7 +261,6 @@ export default {
     success(params) {
       this.closeModel(params);
     },
-    // 关闭模态框
     closeModel(params) {
       this.code(params);
     },
@@ -380,203 +321,332 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.login {
-  .header {
-    height: 110px;
-    .icon {
-      cursor: pointer;
-      width: 112px;
-      height: 40px;
-      img {
-        width: 100%;
-        height: 100%;
-      }
-    }
-    .name {
-      font-size: 28px;
-      margin-left: 15px;
-      cursor: pointer;
-    }
-    .item {
-      margin-left: 40px;
-      font-size: 16px;
-      color: #666666;
-      .iconfont {
-        margin-right: 6px;
-        font-size: 20px;
-      }
-    }
-  }
-  .loginBg {
+.login-page {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部导航 */
+.login-header {
+  background-color: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  height: 80px;
+  display: flex;
+  align-items: center;
+
+  .header-inner {
+    max-width: 1200px;
     width: 100%;
-    height: 608px;
-    background: url(../assets/images/loginBg.jpg) no-repeat;
-    background-size: 100% 100%;
+    margin: 0 auto;
+    padding: 0 15px;
+  }
+
+  .logo-img {
+    height: 40px;
+    cursor: pointer;
+  }
+}
+
+/* 登录主体 */
+.login-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 15px;
+}
+
+.login-card {
+  width: 440px;
+  background-color: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 36px 40px 40px;
+}
+
+/* Tab 切换 */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 0;
+
+  .tab-item {
+    font-size: 16px;
+    color: #666;
+    padding: 0 0 12px 0;
+    margin-right: 30px;
+    cursor: pointer;
     position: relative;
-    .wxLogin {
-      width: 450px;
-      height: 427px;
-      background: #ffffff;
-      position: absolute;
-      right: 360px;
-      top: 91px;
-      padding-top: 34px;
-      .title {
-        font-weight: 400;
-        font-size: 20px;
-        padding-left: 30px;
-        position: relative;
-        .iconfont {
-          font-size: 60px;
-          position: absolute;
-          right: 0;
-          top: -35px;
-        }
+    font-weight: bold;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #e93323;
+    }
+
+    &.active {
+      color: #e93323;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #e93323;
       }
-      .wxCode {
-        width: 220px;
-        margin: 38px auto 0 auto;
-        .iconfont {
-          font-size: 30px;
-          color: #cbcbcb;
-          &.right {
-            transform: rotateY(180deg);
-          }
-          &.bottomL {
-            transform: rotateX(180deg);
-          }
-          &.bottomR {
-            transform: rotateX(180deg);
-          }
-        }
-        .pictrue {
-          width: 190px;
-          height: 190px;
-          margin: -15px auto;
-          img {
-            width: 100%;
-            height: 100%;
-          }
-        }
+    }
+
+    &.wx-tab {
+      float: right;
+      margin-right: 0;
+      color: #07c160;
+      font-size: 15px;
+
+      .iconfont {
+        font-size: 18px;
       }
-      .tip {
+
+      &.active::after {
+        background-color: #07c160;
+      }
+    }
+  }
+}
+
+/* 表单 */
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.form-group {
+  margin-bottom: 20px;
+
+  .form-label {
+    display: block;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    height: 44px;
+    background-color: #fff;
+    transition: border-color 0.2s;
+
+    &:focus-within {
+      border-color: #e93323;
+      box-shadow: 0 0 0 2px rgba(233, 51, 35, 0.08);
+    }
+
+    &.phone-input {
+      .phone-prefix {
+        width: 50px;
+        text-align: center;
         color: #666;
-        font-size: 16px;
-        margin-top: 20px;
-        text-align: center;
+        font-size: 14px;
+        border-right: 1px solid #ddd;
+        line-height: 44px;
+        font-weight: normal;
       }
     }
-    .wrapper {
-      width: 450px;
-      height: 427px;
-      background-color: #fff;
-      position: absolute;
-      top: 91px;
-      right: 360px;
-      text-align: center;
-      padding: 70px 0;
-      .title {
-        font-size: 20px;
-        font-weight: 400;
-        position: relative;
-        .iconfont {
-          position: absolute;
-          top: -71px;
-          right: 0;
-          font-size: 60px;
-          cursor: pointer;
-        }
-      }
-      .item {
-        width: 358px;
-        height: 50px;
-        border: 1px solid #dbdbdb;
-        margin: 0 auto;
-        &.phone {
-          margin-top: 34px;
-          .number {
-            width: 65px;
-            height: 100%;
-            line-height: 50px;
-            color: #666666;
-            border-right: 1px solid #dbdbdb;
-          }
-          input {
-            width: 291px;
-          }
-        }
-        &.pwd {
-          margin-top: 20px;
-          input {
-            width: 100%;
-          }
-        }
-        &.verificat {
-          margin-top: 20px;
-          input {
-            width: 246px;
-          }
-          .code {
-            width: 110px;
-            height: 100%;
-            border: 0;
-            background-color: #fff;
-            border-left: 1px solid #dbdbdb;
-            &.on {
-              color: #ccc !important;
-            }
-          }
-        }
-        input {
-          padding-left: 15px;
-          height: 100%;
-          border: 0;
-          outline: none;
-        }
-      }
-      .signIn {
-        width: 358px;
-        height: 50px;
-        text-align: center;
-        line-height: 50px;
-        margin: 24px auto 0 auto;
-        color: #fff;
-        cursor: pointer;
-      }
-      .fastLogin {
-        margin-top: 14px;
-        cursor: pointer;
-      }
-    }
-  }
-  .isAgree {
-    width: 358px;
-    margin: 12px auto 0 auto;
-    text-align: left;
-    .agree {
-      margin-left: 6px;
-      color: #999999;
-      cursor: pointer;
-      .agreement {
+
+    &.code-input {
+      .code-btn {
+        width: 110px;
+        height: 100%;
+        border: 0;
+        background: #fff;
         color: #e93323;
+        font-size: 14px;
+        border-left: 1px solid #ddd;
+        cursor: pointer;
+        font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+        font-weight: bold;
+        white-space: nowrap;
+        transition: color 0.2s;
+
+        &:hover:not(.on) {
+          color: #d42b1c;
+        }
+
+        &.on {
+          color: #bbb !important;
+          cursor: not-allowed;
+        }
       }
     }
   }
-  .footer {
-    text-align: center;
-    font-size: 12px;
-    color: #555;
-    margin-top: 100px;
-    .adress {
-      margin-left: 40px;
+
+  .form-input {
+    flex: 1;
+    height: 100%;
+    padding: 0 14px;
+    border: 0;
+    outline: none;
+    font-size: 14px;
+    color: #333;
+    background: transparent;
+    font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+    font-weight: bold;
+
+    &::placeholder {
+      color: #bbb;
+      font-weight: normal;
     }
-    .record {
-      margin-top: 6px;
-      .num {
-        margin-left: 10px;
-        &:hover {
-          color: #e93323;
-        }
+  }
+}
+
+/* 选项行 */
+.options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .auto-login {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    font-weight: normal;
+
+    .custom-checkbox {
+      width: 16px;
+      height: 16px;
+      accent-color: #e93323;
+      cursor: pointer;
+    }
+
+    .checkbox-text {
+      font-weight: normal;
+    }
+  }
+
+  .forgot-link {
+    font-size: 14px;
+    color: #e93323;
+    text-decoration: none;
+    font-weight: normal;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+/* 同意协议 */
+.agree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+
+  .agree-text {
+    font-size: 12px;
+    color: #999;
+    font-weight: normal;
+
+    .agree-link {
+      color: #e93323;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: bold;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+/* 登录按钮 */
+.login-btn {
+  width: 100%;
+  height: 46px;
+  background-color: #e93323;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+  transition: background 0.2s;
+  margin-bottom: 16px;
+
+  &:hover {
+    background-color: #d42b1c;
+  }
+
+  &:active {
+    background-color: #c0261a;
+  }
+}
+
+/* 注册行 */
+.register-row {
+  text-align: center;
+  font-size: 14px;
+
+  .no-account {
+    color: #666;
+    font-weight: normal;
+  }
+
+  .register-link {
+    color: #e93323;
+    cursor: pointer;
+    font-weight: bold;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+/* 底部信息 */
+.login-footer {
+  background-color: #fff;
+  border-top: 1px solid #e8e8e8;
+  padding: 20px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+
+  .footer-inner {
+    margin-bottom: 6px;
+
+    .footer-divider {
+      margin: 0 16px;
+      color: #ddd;
+    }
+  }
+
+  .footer-record {
+    .beian {
+      color: #888;
+      text-decoration: none;
+      margin-left: 8px;
+
+      &:hover {
+        color: #e93323;
       }
     }
   }
