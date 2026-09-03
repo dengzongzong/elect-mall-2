@@ -72,55 +72,51 @@ try {
         }
     }
     
-    if ($isGarbled) {
-        echo "<div class='warn'>⚠️ 检测到数据中存在乱码，开始修复...</div>\n";
+    echo "<div class='warn'>⚠️ 强制执行所有表修复...</div>\n";
         
-        // 执行双重编码修复
-        $fixes = [
-            // 修复新闻表
-            "UPDATE `{$config['prefix']}article` SET 
-                title = CONVERT(BINARY CONVERT(CAST(title AS CHAR) USING latin1) USING utf8mb4),
-                author = CONVERT(BINARY CONVERT(CAST(author AS CHAR) USING latin1) USING utf8mb4),
-                synopsis = CONVERT(BINARY CONVERT(CAST(synopsis AS CHAR) USING latin1) USING utf8mb4),
-                share_title = CONVERT(BINARY CONVERT(CAST(share_title AS CHAR) USING latin1) USING utf8mb4),
-                share_synopsis = CONVERT(BINARY CONVERT(CAST(share_synopsis AS CHAR) USING latin1) USING utf8mb4)",
-            
-            // 修复品牌表
-            "UPDATE `{$config['prefix']}brand` SET 
-                name_cn = CONVERT(BINARY CONVERT(CAST(name_cn AS CHAR) USING latin1) USING utf8mb4)",
-            
-            // 修复文章内容
-            "UPDATE `{$config['prefix']}article_content` SET 
-                content = CONVERT(BINARY CONVERT(CAST(content AS CHAR) USING latin1) USING utf8mb4)",
-            
-            // 修复文章分类
-            "UPDATE `{$config['prefix']}article_category` SET 
-                title = CONVERT(BINARY CONVERT(CAST(title AS CHAR) USING latin1) USING utf8mb4),
-                intr = CONVERT(BINARY CONVERT(CAST(intr AS CHAR) USING latin1) USING utf8mb4)",
-            
-            // 修复商品分类（关键！侧边栏菜单数据）
-            "UPDATE `{$config['prefix']}store_category` SET 
-                cate_name = CONVERT(BINARY CONVERT(CAST(cate_name AS CHAR) USING latin1) USING utf8mb4)",
-            
-            // 修复商品表
-            "UPDATE `{$config['prefix']}store_product` SET 
-                store_name = CONVERT(BINARY CONVERT(CAST(store_name AS CHAR) USING latin1) USING utf8mb4),
-                keyword = CONVERT(BINARY CONVERT(CAST(keyword AS CHAR) USING latin1) USING utf8mb4)",
-        ];
+    // 执行双重编码修复 - 不管检测结果，强制修复所有表
+    $fixes = [
+        // 修复新闻表
+        "UPDATE `{$config['prefix']}article` SET 
+            title = CONVERT(BINARY CONVERT(CAST(title AS CHAR) USING latin1) USING utf8mb4),
+            author = CONVERT(BINARY CONVERT(CAST(author AS CHAR) USING latin1) USING utf8mb4),
+            synopsis = CONVERT(BINARY CONVERT(CAST(synopsis AS CHAR) USING latin1) USING utf8mb4),
+            share_title = CONVERT(BINARY CONVERT(CAST(share_title AS CHAR) USING latin1) USING utf8mb4),
+            share_synopsis = CONVERT(BINARY CONVERT(CAST(share_synopsis AS CHAR) USING latin1) USING utf8mb4)",
         
-        foreach ($fixes as $i => $sql) {
-            try {
-                $count = $pdo->exec($sql);
-                echo "<div class='success'>✅ 修复步骤 " . ($i+1) . " 完成，影响行数: " . ($count ?: 0) . "</div>\n";
-            } catch (Exception $e) {
-                echo "<div class='warn'>⚠️ 步骤 " . ($i+1) . " 跳过: " . $e->getMessage() . "</div>\n";
-            }
+        // 修复品牌表
+        "UPDATE `{$config['prefix']}brand` SET 
+            name_cn = CONVERT(BINARY CONVERT(CAST(name_cn AS CHAR) USING latin1) USING utf8mb4)",
+        
+        // 修复文章内容
+        "UPDATE `{$config['prefix']}article_content` SET 
+            content = CONVERT(BINARY CONVERT(CAST(content AS CHAR) USING latin1) USING utf8mb4)",
+        
+        // 修复文章分类
+        "UPDATE `{$config['prefix']}article_category` SET 
+            title = CONVERT(BINARY CONVERT(CAST(title AS CHAR) USING latin1) USING utf8mb4),
+            intr = CONVERT(BINARY CONVERT(CAST(intr AS CHAR) USING latin1) USING utf8mb4)",
+        
+        // 修复商品分类（关键！侧边栏菜单数据）
+        "UPDATE `{$config['prefix']}store_category` SET 
+            cate_name = CONVERT(BINARY CONVERT(CAST(cate_name AS CHAR) USING latin1) USING utf8mb4)",
+        
+        // 修复商品表
+        "UPDATE `{$config['prefix']}store_product` SET 
+            store_name = CONVERT(BINARY CONVERT(CAST(store_name AS CHAR) USING latin1) USING utf8mb4),
+            keyword = CONVERT(BINARY CONVERT(CAST(keyword AS CHAR) USING latin1) USING utf8mb4)",
+    ];
+    
+    foreach ($fixes as $i => $sql) {
+        try {
+            $count = $pdo->exec($sql);
+            echo "<div class='success'>✅ 修复步骤 " . ($i+1) . " 完成，影响行数: " . ($count ?: 0) . "</div>\n";
+        } catch (Exception $e) {
+            echo "<div class='warn'>⚠️ 步骤 " . ($i+1) . " 跳过: " . $e->getMessage() . "</div>\n";
         }
-        
-        echo "<div class='success'>✅ 中文乱码修复完成！</div>\n";
-    } else {
-        echo "<div class='success'>✅ 数据已经是正常中文，无需修复</div>\n";
     }
+    
+    echo "<div class='success'>✅ 中文乱码修复完成！</div>\n";
     
     # ---- 第二步：检查并重置管理员密码 ----
     echo "<h2>🔐 第二步：管理后台账号检查</h2>";
