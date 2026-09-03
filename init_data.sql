@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `eb_brand` (
     `sort` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '排序',
     `status` tinyint(1) unsigned NOT NULL DEFAULT 1 COMMENT '状态 1=显示 0=隐藏',
     `is_authorized` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否授权代理',
-    `add_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `add_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `is_del` tinyint(1) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
     KEY `idx_initial` (`initial`),
@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS `eb_partner_apply` (
     `contact_name` varchar(100) NOT NULL DEFAULT '' COMMENT '联系人',
     `phone` varchar(20) NOT NULL DEFAULT '' COMMENT '手机号',
     `email` varchar(100) NOT NULL DEFAULT '' COMMENT '邮箱',
-    `add_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+    `add_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
     `status` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '状态 0=待处理 1=已联系 2=已完成',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商合作申请表';
@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS `eb_store_product_tiered_pricing` (
     `max_qty` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '结束数量(0=无限)',
     `price` decimal(10,2) unsigned NOT NULL DEFAULT 0.00 COMMENT '阶梯价格',
     `is_del` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否删除',
-    `add_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
+    `add_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
     PRIMARY KEY (`id`),
     KEY `idx_product_id` (`product_id`),
     KEY `idx_unique_id` (`unique_id`)
