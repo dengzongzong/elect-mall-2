@@ -170,6 +170,24 @@
       </div>
     </div>
 
+    <!-- 新闻动态区域 -->
+    <div class="container news-section" v-if="newsList && newsList.length">
+      <div class="news-header">
+        <h2 class="news-title">新闻动态</h2>
+        <nuxt-link to="/news_list" class="news-more">
+          更多<span class="news-more-icon">></span>
+        </nuxt-link>
+      </div>
+      <div class="news-list">
+        <div class="news-item" v-for="(item, index) in newsList" :key="index">
+          <nuxt-link :to="{ path: '/news_detail', query: { id: item.id } }" class="news-link">
+            <span class="news-icon"></span>
+            <span class="news-text">{{ item.title }}</span>
+          </nuxt-link>
+        </div>
+      </div>
+    </div>
+
     <!-- 首发新品 / 特色产品轮播 -->
     <div class="container featured-products-section" v-if="newGoods.length">
       <div class="section-header">
@@ -311,6 +329,7 @@ export default {
       current: -1,
       swiperData: [],
       homeAdList: [],
+      newsList: [],
       categoryList: [],
       categoryCurrent: {},
       datatime: 0,
@@ -361,13 +380,14 @@ export default {
     };
   },
   async asyncData({ app }) {
-    let [categoryMsg, seckillMsg, indexMsg, bannerMsg, adMsg] = await Promise.all([
+    let [categoryMsg, seckillMsg, indexMsg, bannerMsg, adMsg, newsMsg] = await Promise.all([
       //获取banner分类
       app.$axios.get("/category"),
       app.$axios.get("/seckill/index"),
       app.$axios.get("/index"),
       app.$axios.get("/pc/get_banner"),
-      app.$axios.get("/pc/get_home_ad")
+      app.$axios.get("/pc/get_home_ad"),
+      app.$axios.get("/pc/get_news_list", { params: { limit: 6 } })
     ]);
     return {
       categoryList: categoryMsg.data,
@@ -380,6 +400,7 @@ export default {
       // logoUrl: indexMsg.data.logoUrl,
       swiperData: bannerMsg.data.list,
       homeAdList: adMsg.data.list || [],
+      newsList: newsMsg.data.list || [],
       siteName: indexMsg.data.site_name
     };
   },
@@ -897,6 +918,91 @@ export default {
           color: #666;
           text-decoration: none;
           transition: color 0.3s;
+
+          &:hover {
+            color: #e93323;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* 新闻动态区域 */
+.news-section {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+
+  .news-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e93323;
+
+    .news-title {
+      font-size: 18px;
+      color: #333;
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .news-more {
+      font-size: 13px;
+      color: #999;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+
+      .news-more-icon {
+        margin-left: 4px;
+        font-size: 12px;
+      }
+
+      &:hover {
+        color: #e93323;
+      }
+    }
+  }
+
+  .news-list {
+    .news-item {
+      border-bottom: 1px dashed #eee;
+      transition: background 0.2s;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background: #fafafa;
+      }
+
+      .news-link {
+        display: flex;
+        align-items: center;
+        padding: 10px 0;
+        text-decoration: none;
+        color: #333;
+        font-size: 14px;
+        font-weight: bold;
+
+        .news-icon {
+          color: #e93323;
+          font-size: 14px;
+          margin-right: 10px;
+          flex-shrink: 0;
+        }
+
+        .news-text {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          line-height: 1.5;
 
           &:hover {
             color: #e93323;
