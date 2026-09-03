@@ -63,7 +63,7 @@ $output = [];
 exec('git pull origin main 2>&1', $output);
 echo implode("\n", $output) . "\n\n";
 
-// 2. 更新Nginx配置
+// 2. 更新Nginx配置（使用sudo提权）
 echo "[2/5] 更新Nginx配置...\n";
 ob_flush();
 flush();
@@ -71,26 +71,34 @@ $src = '/var/www/elect-mall/deploy/elect-mall.conf';
 $dst = '/etc/nginx/conf.d/elect-mall.conf';
 if (file_exists($src)) {
     $content = file_get_contents($src);
-    if (file_put_contents($dst, $content)) {
-        echo "✓ 已复制配置到 {$dst}\n";
+    // 先尝试sudo cp
+    chdir(dirname($src));
+    exec('sudo cp elect-mall.conf ' . $dst . ' 2>&1', $cpOut, $cpCode);
+    if ($cpCode === 0) {
+        echo "✓ 已复制配置到 {$dst} (via sudo)\n";
     } else {
-        echo "✗ 无法写入 {$dst}，请检查权限\n";
+        // 失败则尝试直接file_put_contents
+        if (file_put_contents($dst, $content)) {
+            echo "✓ 已复制配置到 {$dst}\n";
+        } else {
+            echo "✗ 无法写入 {$dst}，请检查权限\n";
+        }
     }
 } else {
     echo "✗ 源文件不存在: {$src}\n";
 }
 
-// 3. 重载Nginx
+// 3. 重载Nginx（使用sudo提权）
 echo "\n[3/5] 重载Nginx...\n";
 ob_flush();
 flush();
-exec('/usr/sbin/nginx -t 2>&1', $output);
+exec('sudo /usr/sbin/nginx -t 2>&1', $output);
 echo implode("\n", $output) . "\n";
-exec('systemctl reload nginx 2>&1', $output);
+exec('sudo systemctl reload nginx 2>&1', $output);
 echo implode("\n", $output) . "\n";
 
 echo "\n[4/5] 重载PHP-FPM...\n";
-exec('systemctl reload php-fpm 2>&1', $output);
+exec('sudo systemctl reload php-fpm 2>&1', $output);
 echo implode("\n", $output) . "\n";
 
 echo "\n[5/5] 检查文件...\n";

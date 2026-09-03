@@ -116,20 +116,25 @@ if [ -d "${PROJECT_DIR}/crmeb/public" ]; then
     log "[6/7] crmeb/public PHP tools synced"
 fi
 
-# 7. 更新Nginx配置并重启服务
+# 7. 更新Nginx配置并重启服务（使用sudo提权）
 log "[7/7] Update Nginx config & restart..."
 if [ -f "${PROJECT_DIR}/deploy/elect-mall.conf" ]; then
-    cp "${PROJECT_DIR}/deploy/elect-mall.conf" /etc/nginx/conf.d/elect-mall.conf
-    log "[7/7] Nginx config updated"
+    sudo cp "${PROJECT_DIR}/deploy/elect-mall.conf" /etc/nginx/conf.d/elect-mall.conf 2>/dev/null
+    if [ $? -eq 0 ]; then
+        log "[7/7] Nginx config updated"
+    else
+        log "[7/7] WARN: sudo cp failed, try direct cp..."
+        cp "${PROJECT_DIR}/deploy/elect-mall.conf" /etc/nginx/conf.d/elect-mall.conf 2>/dev/null || true
+    fi
 fi
-chown -R nginx:nginx "${PROJECT_DIR}/crmeb/runtime" 2>/dev/null || true
-chown -R nginx:nginx "${PROJECT_DIR}/crmeb/public" 2>/dev/null || true
-chmod -R 755 "${PROJECT_DIR}/crmeb/runtime" 2>/dev/null || true
+sudo chown -R nginx:nginx "${PROJECT_DIR}/crmeb/runtime" 2>/dev/null || true
+sudo chown -R nginx:nginx "${PROJECT_DIR}/crmeb/public" 2>/dev/null || true
+sudo chmod -R 755 "${PROJECT_DIR}/crmeb/runtime" 2>/dev/null || true
 
-systemctl reload php-fpm 2>/dev/null || systemctl restart php-fpm 2>/dev/null || true
-nginx -t 2>&1 | tee -a "$LOG_FILE"
+sudo systemctl reload php-fpm 2>/dev/null || sudo systemctl restart php-fpm 2>/dev/null || true
+sudo nginx -t 2>&1 | tee -a "$LOG_FILE"
 if [ $? -eq 0 ]; then
-    systemctl reload nginx 2>/dev/null || true
+    sudo systemctl reload nginx 2>/dev/null || true
     log "[7/7] Nginx reloaded"
 else
     log "[7/7] Nginx config test failed, skipped reload"

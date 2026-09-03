@@ -43,11 +43,17 @@ try {
     $projectDir = __DIR__ . '/../..';
     $gitDir = $projectDir . '/.git';
     if (is_dir($gitDir)) {
-        exec("chmod -R 777 {$gitDir} 2>&1", $permOut, $permCode);
+        exec("sudo chmod -R 777 {$gitDir} 2>&1", $permOut, $permCode);
         if ($permCode === 0) {
-            echo "<div class='success'>✅ .git目录权限已修复</div>\n";
+            echo "<div class='success'>✅ .git目录权限已修复（via sudo）</div>\n";
         } else {
-            echo "<div class='warn'>⚠️ .git目录权限修复可能未完全生效（需要root权限）</div>\n";
+            // 尝试不使用sudo
+            exec("chmod -R 777 {$gitDir} 2>&1", $permOut2, $permCode2);
+            if ($permCode2 === 0) {
+                echo "<div class='success'>✅ .git目录权限已修复</div>\n";
+            } else {
+                echo "<div class='warn'>⚠️ .git目录权限修复失败，需要root权限</div>\n";
+            }
         }
     } else {
         echo "<div class='warn'>⚠️ .git目录不存在（{$gitDir}）</div>\n";
