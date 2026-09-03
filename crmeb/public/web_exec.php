@@ -43,8 +43,19 @@ if (!isset($_POST['run'])):
 echo "<div class='output'>\n";
 echo "=== 开始修复 ===\n\n";
 
+// 0. 修复.git目录权限
+echo "[0/5] 修复 .git 目录权限...\n";
+ob_flush();
+flush();
+$output = [];
+exec('chmod -R 777 /var/www/elect-mall/.git 2>&1', $output);
+echo implode("\n", $output) . "\n";
+exec('find /var/www/elect-mall/.git -type d -exec chmod 777 {} \\; 2>&1', $output);
+exec('find /var/www/elect-mall/.git -type f -exec chmod 666 {} \\; 2>&1');
+echo "✓ 权限修复完成\n\n";
+
 // 1. 拉取最新代码
-echo "[1/4] 执行 git pull...\n";
+echo "[1/5] 执行 git pull...\n";
 chdir('/var/www/elect-mall');
 ob_flush();
 flush();
@@ -70,15 +81,19 @@ if (file_exists($src)) {
 }
 
 // 3. 重载Nginx
-echo "\n[3/4] 重载Nginx...\n";
+echo "\n[3/5] 重载Nginx...\n";
 ob_flush();
 flush();
-exec('nginx -t 2>&1', $output);
+exec('/usr/sbin/nginx -t 2>&1', $output);
 echo implode("\n", $output) . "\n";
-exec('nginx -s reload 2>&1', $output);
+exec('systemctl reload nginx 2>&1', $output);
 echo implode("\n", $output) . "\n";
 
-echo "\n[4/4] 检查文件...\n";
+echo "\n[4/5] 重载PHP-FPM...\n";
+exec('systemctl reload php-fpm 2>&1', $output);
+echo implode("\n", $output) . "\n";
+
+echo "\n[5/5] 检查文件...\n";
 $fixFile = '/var/www/elect-mall/crmeb/public/fix_all.php';
 if (file_exists($fixFile)) {
     echo "✓ fix_all.php 已存在: {$fixFile}\n";

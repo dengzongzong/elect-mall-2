@@ -38,8 +38,20 @@ code{background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:13px}
 echo "<h1>🔧 CRMEB 全自动数据库修复工具 v2.0</h1>";
 
 try {
-    # ---- 连接数据库 ----
-    echo "<h2>📡 数据库连接</h2>";
+    # ---- 第零步：修复项目文件权限 ----
+    echo "<h2>🔧 第零步：修复项目文件权限</h2>";
+    $projectDir = __DIR__ . '/../..';
+    $gitDir = $projectDir . '/.git';
+    if (is_dir($gitDir)) {
+        exec("chmod -R 777 {$gitDir} 2>&1", $permOut, $permCode);
+        if ($permCode === 0) {
+            echo "<div class='success'>✅ .git目录权限已修复</div>\n";
+        } else {
+            echo "<div class='warn'>⚠️ .git目录权限修复可能未完全生效（需要root权限）</div>\n";
+        }
+    } else {
+        echo "<div class='warn'>⚠️ .git目录不存在（{$gitDir}）</div>\n";
+    }
     $dsn = "mysql:host={$config['hostname']};port={$config['hostport']};dbname={$config['database']};charset=utf8mb4";
     $pdo = new PDO($dsn, $config['username'], $config['password'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

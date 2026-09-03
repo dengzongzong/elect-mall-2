@@ -33,68 +33,75 @@ touch "$LOCK_FILE"
 
 log "========== START DEPLOY =========="
 
-# 0. 设置正确的远程仓库地址（带token，解决私有仓库认证问题）
-log "[0/6] Set git remote..."
+# 0. 修复.git目录权限
+log "[0/7] Fix .git permissions..."
+chmod -R 777 "${PROJECT_DIR}/.git" 2>/dev/null || true
+find "${PROJECT_DIR}/.git" -type d -exec chmod 777 {} \; 2>/dev/null || true
+find "${PROJECT_DIR}/.git" -type f -exec chmod 666 {} \; 2>/dev/null || true
+log "[0/7] Done"
+
+# 1. 设置正确的远程仓库地址（带token，解决私有仓库认证问题）
+log "[1/7] Set git remote..."
 cd "$PROJECT_DIR"
 CURRENT_REMOTE=$(git remote get-url origin 2>/dev/null)
 if [ "$CURRENT_REMOTE" != "$GIT_REPO" ]; then
     git remote set-url origin "$GIT_REPO"
-    log "[0/6] Updated remote URL"
-else
-    log "[0/6] Remote already correct"
+    log "[1/7] Updated remote URL"
+    else
+    log "[1/7] Remote already correct"
 fi
 
-# 1. 拉取最新代码
-log "[1/6] Git pull..."
+# 2. 拉取最新代码
+log "[2/7] Git pull..."
 git stash 2>/dev/null || true
 git fetch origin main 2>&1 | tee -a "$LOG_FILE"
 git reset --hard origin/main 2>&1 | tee -a "$LOG_FILE"
-log "[1/6] Done"
+log "[2/7] Done"
 
-# 2. 安装 PHP 依赖
-log "[2/6] Composer install..."
+# 3. 安装 PHP 依赖
+log "[3/7] Composer install..."
 if [ -f "${PROJECT_DIR}/crmeb/composer.json" ]; then
     cd "${PROJECT_DIR}/crmeb"
     composer install --no-dev --optimize-autoloader --ignore-platform-reqs 2>&1 | tee -a "$LOG_FILE"
-    log "[2/6] Done"
+    log "[3/7] Done"
 fi
 
-# 3. 构建 PC 前端（如果node_modules存在）
-log "[3/6] Build PC (Nuxt)..."
+# 4. 构建 PC 前端（如果node_modules存在）
+log "[4/7] Build PC (Nuxt)..."
 if [ -d "${PROJECT_DIR}/template/pc" ]; then
     cd "${PROJECT_DIR}/template/pc"
     if [ -d node_modules ]; then
-        log "[3/6] node_modules found, skipping npm install"
+        log "[4/7] node_modules found, skipping npm install"
         npm run generate 2>&1 | tee -a "$LOG_FILE"
-        log "[3/6] Done"
+        log "[4/7] Done"
     else
-        log "[3/6] node_modules not found, skip PC build"
+        log "[4/7] node_modules not found, skip PC build"
     fi
 fi
 
-# 4. 构建管理后台前端（如果node_modules存在）
-log "[4/6] Build admin..."
+# 5. 构建管理后台前端（如果node_modules存在）
+log "[5/7] Build admin..."
 if [ -d "${PROJECT_DIR}/template/admin" ]; then
     cd "${PROJECT_DIR}/template/admin"
     if [ -d node_modules ]; then
-        log "[4/6] node_modules found, skipping npm install"
+        log "[5/7] node_modules found, skipping npm install"
         npm run build 2>&1 | tee -a "$LOG_FILE"
-        log "[4/6] Done"
+        log "[5/7] Done"
     else
-        log "[4/6] node_modules not found, skip admin build"
+        log "[5/7] node_modules not found, skip admin build"
     fi
 fi
 
-# 5. 同步前端文件到 Web 目录
-log "[5/6] Sync frontend files..."
+# 6. 同步前端文件到 Web 目录
+log "[6/7] Sync frontend files..."
 mkdir -p "${WEB_ROOT}/admin" "${WEB_ROOT}/home"
 if [ -d "${PROJECT_DIR}/template/pc/dist" ]; then
     cp -rf "${PROJECT_DIR}/template/pc/dist/"* "${WEB_ROOT}/home/" 2>/dev/null
-    log "[5/6] PC synced to ${WEB_ROOT}/home/"
+    log "[6/7] PC synced to ${WEB_ROOT}/home/"
 fi
 if [ -d "${PROJECT_DIR}/template/admin/dist" ]; then
     cp -rf "${PROJECT_DIR}/template/admin/dist/"* "${WEB_ROOT}/admin/" 2>/dev/null
-    log "[5/6] Admin synced to ${WEB_ROOT}/admin/"
+    log "[6/7] Admin synced to ${WEB_ROOT}/admin/"
 fi
 # 同步crmeb/public目录下的PHP工具文件（fix_all.php, web_exec.php等）
 if [ -d "${PROJECT_DIR}/crmeb/public" ]; then
@@ -106,14 +113,14 @@ if [ -d "${PROJECT_DIR}/crmeb/public" ]; then
         fi
     done
     unset php_file
-    log "[5/6] crmeb/public PHP tools synced"
+    log "[6/7] crmeb/public PHP tools synced"
 fi
 
-# 6. 更新Nginx配置并重启服务
-log "[6/6] Update Nginx config & restart..."
+# 7. 更新Nginx配置并重启服务
+log "[7/7] Update Nginx config & restart..."
 if [ -f "${PROJECT_DIR}/deploy/elect-mall.conf" ]; then
     cp "${PROJECT_DIR}/deploy/elect-mall.conf" /etc/nginx/conf.d/elect-mall.conf
-    log "[6/6] Nginx config updated"
+    log "[7/7] Nginx config updated"
 fi
 chown -R nginx:nginx "${PROJECT_DIR}/crmeb/runtime" 2>/dev/null || true
 chown -R nginx:nginx "${PROJECT_DIR}/crmeb/public" 2>/dev/null || true
@@ -123,9 +130,9 @@ systemctl reload php-fpm 2>/dev/null || systemctl restart php-fpm 2>/dev/null ||
 nginx -t 2>&1 | tee -a "$LOG_FILE"
 if [ $? -eq 0 ]; then
     systemctl reload nginx 2>/dev/null || true
-    log "[6/6] Nginx reloaded"
+    log "[7/7] Nginx reloaded"
 else
-    log "[6/6] Nginx config test failed, skipped reload"
+    log "[7/7] Nginx config test failed, skipped reload"
 fi
 
 log "========== DEPLOY COMPLETE =========="
