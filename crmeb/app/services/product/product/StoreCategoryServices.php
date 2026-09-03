@@ -171,20 +171,36 @@ class StoreCategoryServices extends BaseServices
     }
 
     /**
-     * 获取一级分类组合数据
+     * 获取分类组合数据（支持三级分类）
      * @param string $pid
      * @return array[]
      */
     public function menus($pid = '')
     {
-        $list = $this->dao->getMenus(['pid' => 0]);
         $menus = [['value' => 0, 'label' => '顶级分类']];
         if ($pid === 0) return $menus;
-//        if ($pid != '') $menus = [];
-        foreach ($list as $menu) {
-            $menus[] = ['value' => $menu['id'], 'label' => $menu['cate_name']];
-        }
+        // 获取所有分类，构建树形下拉
+        $list = $this->dao->getTierList([], ['id', 'pid', 'cate_name']);
+        $tree = get_tree_children($list);
+        $this->buildMenusTree($tree, $menus, '');
         return $menus;
+    }
+
+    /**
+     * 递归构建树形下拉菜单
+     * @param array $tree
+     * @param array $result
+     * @param string $prefix
+     */
+    private function buildMenusTree(array $tree, array &$result, string $prefix)
+    {
+        foreach ($tree as $item) {
+            $label = $prefix . $item['cate_name'];
+            $result[] = ['value' => $item['id'], 'label' => $label];
+            if (!empty($item['children'])) {
+                $this->buildMenusTree($item['children'], $result, $prefix . '── ');
+            }
+        }
     }
 
     /**
@@ -205,9 +221,18 @@ class StoreCategoryServices extends BaseServices
             throw new AdminException('该分类已存在');
         }
 
-        $parent = $this->dao->getOne(['id' => $data['pid']]);
-        if ($data['pid'] && (!$parent || $parent['pid'] > 0)) {
-            throw new AdminException('只支持两级分类');
+        // 允许三级分类：pid=0 顶级，pid>0 且 parent.pid=0 二级，pid>0 且 parent.pid>0 三级
+        if ($data['pid'] > 0) {
+            $parent = $this->dao->getOne(['id' => $data['pid']]);
+            if (!$parent) {
+                throw new AdminException('上级分类不存在');
+            }
+            if ($parent['pid'] > 0) {
+                $grandParent = $this->dao->getOne(['id' => $parent['pid']]);
+                if ($grandParent && $grandParent['pid'] > 0) {
+                    throw new AdminException('最多支持三级分类');
+                }
+            }
         }
 
         $data['add_time'] = time();
@@ -236,9 +261,18 @@ class StoreCategoryServices extends BaseServices
             throw new AdminException('请填写分类名称');
         }
 
-        $parent = $this->dao->getOne(['id' => $data['pid']]);
-        if ($parent && $parent['pid'] > 0) {
-            throw new AdminException('只支持两级分类');
+        // 允许三级分类：pid=0 顶级，pid>0 且 parent.pid=0 二级，pid>0 且 parent.pid>0 三级
+        if ($data['pid'] > 0) {
+            $parent = $this->dao->getOne(['id' => $data['pid']]);
+            if (!$parent) {
+                throw new AdminException('上级分类不存在');
+            }
+            if ($parent['pid'] > 0) {
+                $grandParent = $this->dao->getOne(['id' => $parent['pid']]);
+                if ($grandParent && $grandParent['pid'] > 0) {
+                    throw new AdminException('最多支持三级分类');
+                }
+            }
         }
 
         $cate = $this->dao->getOne(['cate_name' => $data['cate_name'], 'pid' => $data['pid']]);
