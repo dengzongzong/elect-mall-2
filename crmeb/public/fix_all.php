@@ -47,13 +47,30 @@ try {
     # ---- 第一步：修复中文乱码 ----
     echo "<h2>📝 第一步：修复中文乱码</h2>";
     
-    // 先检查数据是否真的有问题
-    $stmt = $pdo->query("SELECT id, title FROM `{$config['prefix']}article` LIMIT 1");
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    $title = $row['title'] ?? '';
+    // 检查多个表是否包含乱码
+    $tablesToCheck = [
+        "SELECT id, title FROM `{$config['prefix']}article` LIMIT 1" => 'title',
+        "SELECT id, cate_name FROM `{$config['prefix']}store_category` LIMIT 1" => 'cate_name',
+        "SELECT id, store_name FROM `{$config['prefix']}store_product` LIMIT 1" => 'store_name',
+        "SELECT id, name_cn FROM `{$config['prefix']}brand` LIMIT 1" => 'name_cn',
+    ];
     
-    // 判断是否包含乱码（检查是否包含Latin-1编码的UTF-8字节特征）
-    $isGarbled = (strpos($title, 'å') !== false || strpos($title, 'æ') !== false);
+    $isGarbled = false;
+    foreach ($tablesToCheck as $sql => $field) {
+        try {
+            $stmt = $pdo->query($sql);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && isset($row[$field])) {
+                $val = $row[$field];
+                if (strpos($val, 'å') !== false || strpos($val, 'æ') !== false) {
+                    $isGarbled = true;
+                    echo "<div class='warn'>⚠️ 表 {$field} 字段存在乱码: " . htmlspecialchars(substr($val, 0, 30)) . "</div>\n";
+                }
+            }
+        } catch (Exception $e) {
+            // 表可能不存在，跳过
+        }
+    }
     
     if ($isGarbled) {
         echo "<div class='warn'>⚠️ 检测到数据中存在乱码，开始修复...</div>\n";
@@ -80,6 +97,10 @@ try {
             "UPDATE `{$config['prefix']}article_category` SET 
                 title = CONVERT(BINARY CONVERT(CAST(title AS CHAR) USING latin1) USING utf8mb4),
                 intr = CONVERT(BINARY CONVERT(CAST(intr AS CHAR) USING latin1) USING utf8mb4)",
+            
+            // 修复商品分类（关键！侧边栏菜单数据）
+            "UPDATE `{$config['prefix']}store_category` SET 
+                cate_name = CONVERT(BINARY CONVERT(CAST(cate_name AS CHAR) USING latin1) USING utf8mb4)",
             
             // 修复商品表
             "UPDATE `{$config['prefix']}store_product` SET 
