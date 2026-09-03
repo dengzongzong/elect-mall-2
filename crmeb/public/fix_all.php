@@ -1,14 +1,12 @@
 <?php
 /**
- * 一键修复脚本
- * 1. 修复数据库中文乱码（双重编码问题）
- * 2. 重置管理员密码
+ * 全自动数据库修复脚本
+ * 功能：自动扫描所有表，检测并修复双重编码乱码，重置管理员密码
  * 
  * 访问方式：http://你的域名/fix_all.php
  * 使用后请立即删除此文件！
  */
 
-// 设置响应编码
 header('Content-Type: text/html; charset=utf-8');
 
 // 加载ThinkPHP环境
@@ -22,17 +20,20 @@ require $autoload;
 $envFile = __DIR__ . '/../.env';
 $config = parseEnv($envFile);
 
-echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>数据库修复工具</title>";
+echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>全自动数据库修复工具</title>";
 echo "<style>
-body{font-family:'Microsoft YaHei',sans-serif;max-width:800px;margin:50px auto;padding:20px;line-height:1.8}
+body{font-family:'Microsoft YaHei',sans-serif;max-width:900px;margin:30px auto;padding:20px;line-height:1.8}
+h1{color:#2c3e50;border-bottom:3px solid #e74c3c;padding-bottom:10px}
 .success{color:#090;padding:5px 10px;background:#e8f8e8;border-radius:4px;margin:2px 0}
 .error{color:#c00;padding:5px 10px;background:#fde8e8;border-radius:4px;margin:2px 0}
 .warn{color:#960;padding:5px 10px;background:#fff3e0;border-radius:4px;margin:2px 0}
 .info{color:#036;padding:5px 10px;background:#e3f2fd;border-radius:4px;margin:2px 0}
-h2{border-bottom:2px solid #4CAF50;padding-bottom:8px}
-h3{color:#333}
+table{border-collapse:collapse;width:100%;margin:10px 0}
+table td, table th{border:1px solid #ddd;padding:6px 10px;text-align:left}
+table th{background:#f5f5f5}
+.summary{font-size:18px;padding:15px;background:#e8f8e8;border-radius:8px;margin:15px 0}
 </style></head><body>";
-echo "<h1>🔧 CRMEB 数据库修复工具</h1>";
+echo "<h1>🔧 CRMEB 全自动数据库修复工具</h1>";
 
 try {
     # ---- 连接数据库 ----
@@ -44,79 +45,103 @@ try {
     ]);
     echo "<div class='success'>✅ 数据库连接成功: {$config['database']}</div>\n";
 
-    # ---- 第一步：修复中文乱码 ----
-    echo "<h2>📝 第一步：修复中文乱码</h2>";
+    # ---- 第一步：全面扫描所有表，修复双重编码乱码 ----
+    echo "<h2>📝 第一步：扫描所有表，修复中文乱码</h2>";
     
-    // 检查多个表是否包含乱码
-    $tablesToCheck = [
-        "SELECT id, title FROM `{$config['prefix']}article` LIMIT 1" => 'title',
-        "SELECT id, cate_name FROM `{$config['prefix']}store_category` LIMIT 1" => 'cate_name',
-        "SELECT id, store_name FROM `{$config['prefix']}store_product` LIMIT 1" => 'store_name',
-        "SELECT id, name_cn FROM `{$config['prefix']}brand` LIMIT 1" => 'name_cn',
-    ];
+    // 获取所有表
+    $stmt = $pdo->query("SHOW TABLES");
+    $allTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    echo "<div class='info'>📋 数据库共 " . count($allTables) . " 个表</div>\n";
     
-    $isGarbled = false;
-    foreach ($tablesToCheck as $sql => $field) {
-        try {
-            $stmt = $pdo->query($sql);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row && isset($row[$field])) {
-                $val = $row[$field];
-                if (strpos($val, 'å') !== false || strpos($val, 'æ') !== false) {
-                    $isGarbled = true;
-                    echo "<div class='warn'>⚠️ 表 {$field} 字段存在乱码: " . htmlspecialchars(substr($val, 0, 30)) . "</div>\n";
+    $totalFixed = 0;
+    $totalGarbled = 0;
+    $fixedTables = [];
+    $skippedTables = [];
+    
+    echo "<table><tr><th>#</th><th>表名</th><th>字段</th><th>修复行数</th><th>状态</th></tr>\n";
+    $tableIndex = 0;
+    
+    foreach ($allTables as $tableName) {
+        $tableIndex++;
+        
+        // 获取表的字段信息
+        $colStmt = $pdo->query("SHOW COLUMNS FROM `{$tableName}`");
+        $columns = $colStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 筛选出需要检查的文本字段（varchar, char, text, mediumtext, longtext）
+        $textColumns = [];
+        foreach ($columns as $col) {
+            $type = strtolower($col['Type']);
+            $field = $col['Field'];
+            // 只处理文本类型字段，排除主键和时间字段
+            if (preg_match('/^(varchar|char|text|mediumtext|longtext|tinytext)/', $type)) {
+                if (!in_array($field, ['id', 'add_time', 'update_time', 'create_time', 'delete_time', 'status', 'is_del', 'is_show', 'is_hot', 'is_banner', 'is_postage', 'sort', 'visit', 'sales', 'stock', 'price', 'cost', 'ot_price', 'brokerage', 'brokerage_two', 'integral', 'ficti', 'give_integral', 'give_coupon', 'delivery_type', 'attr', 'spec_type', 'image', 'images', 'slider_image', 'video_link', 'image_input', 'url', 'wechat', 'phone', 'province', 'city', 'district', 'address', 'longitude', 'latitude', 'password', 'pwd', 'pay_password', 'token', 'api_token', 'openid', 'unionid', 'spread_openid', 'routine_openid', 'session_key', 'last_ip', 'client_ip', 'icon', 'avatar', 'headimgurl', 'user_type', 'login_type', 'account', 'pwd', 'level', 'ip', 'user_agent', 'email', 'color', 'upload_type', 'link_id', 'unique', 'bar_code', 'code', 'qrcode', 'postage', 'delivery_id', 'delivery_name', 'mark', 'mark_id', 'mark_type', 'path', 'file_path', 'attach', 'attach_type', 'module', 'type', 'extend', 'extend_one', 'extend_two', 'extend_three', 'extend_four', 'extend_five', 'fail_msg', 'error_msg', 'remark', 'admin_remark', 'mer_remark', 'remark_id', 'fail_reason', 'refund_reason', 'cancel_reason', 'reason', 'stop_reason', 'close_reason', 'invalid_reason', 'no_buy_reason', 'no_delivery_reason', 'no_pay_reason', 'no_refund_reason', 'no_write_reason', 'no_writeoff_reason', 'no_verify_reason', 'no_comment_reason', 'no_reply_reason', 'no_agree_reason', 'no_confirm_reason', 'no_sign_reason', 'no_check_reason', 'no_audit_reason', 'no_approve_reason', 'no_apply_reason', 'no_cancel_reason', 'no_close_reason', 'no_invalid_reason'])) {
+                    $textColumns[] = $field;
                 }
             }
-        } catch (Exception $e) {
-            // 表可能不存在，跳过
+        }
+        
+        if (empty($textColumns)) {
+            continue; // 跳过没有文本字段的表
+        }
+        
+        // 检查每个文本字段是否包含乱码
+        $tableFixed = false;
+        $garbledCount = 0;
+        
+        foreach ($textColumns as $field) {
+            try {
+                // 检查前5行数据是否包含乱码特征
+                $checkStmt = $pdo->query("SELECT `{$field}` FROM `{$tableName}` WHERE `{$field}` IS NOT NULL AND `{$field}` != '' LIMIT 5");
+                $rows = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                $hasGarbled = false;
+                foreach ($rows as $val) {
+                    // 检查是否包含双重编码的特征字符
+                    if (strpos($val, 'å') !== false || strpos($val, 'æ') !== false || 
+                        strpos($val, 'è') !== false || strpos($val, 'é') !== false ||
+                        strpos($val, 'ç') !== false || strpos($val, 'ï') !== false) {
+                        $hasGarbled = true;
+                        break;
+                    }
+                }
+                
+                if ($hasGarbled) {
+                    // 执行双重编码修复
+                    $fixSql = "UPDATE `{$tableName}` SET `{$field}` = CONVERT(BINARY CONVERT(CAST(`{$field}` AS CHAR) USING latin1) USING utf8mb4) WHERE `{$field}` IS NOT NULL AND `{$field}` != ''";
+                    $count = $pdo->exec($fixSql);
+                    if ($count > 0) {
+                        $garbledCount += $count;
+                        $tableFixed = true;
+                    }
+                }
+            } catch (Exception $e) {
+                // 跳过出错字段
+            }
+        }
+        
+        if ($tableFixed) {
+            $totalFixed += $garbledCount;
+            $totalGarbled++;
+            $fixedTables[] = $tableName;
+            echo "<tr><td>{$tableIndex}</td><td><strong>{$tableName}</strong></td><td>" . implode(', ', $textColumns) . "</td><td>{$garbledCount}</td><td class='success'>✅ 已修复</td></tr>\n";
+        } else {
+            $skippedTables[] = $tableName;
+            // 不在表格中显示跳过的表，避免太多行
         }
     }
     
-    echo "<div class='warn'>⚠️ 强制执行所有表修复...</div>\n";
-        
-    // 执行双重编码修复 - 不管检测结果，强制修复所有表
-    $fixes = [
-        // 修复新闻表
-        "UPDATE `{$config['prefix']}article` SET 
-            title = CONVERT(BINARY CONVERT(CAST(title AS CHAR) USING latin1) USING utf8mb4),
-            author = CONVERT(BINARY CONVERT(CAST(author AS CHAR) USING latin1) USING utf8mb4),
-            synopsis = CONVERT(BINARY CONVERT(CAST(synopsis AS CHAR) USING latin1) USING utf8mb4),
-            share_title = CONVERT(BINARY CONVERT(CAST(share_title AS CHAR) USING latin1) USING utf8mb4),
-            share_synopsis = CONVERT(BINARY CONVERT(CAST(share_synopsis AS CHAR) USING latin1) USING utf8mb4)",
-        
-        // 修复品牌表
-        "UPDATE `{$config['prefix']}brand` SET 
-            name_cn = CONVERT(BINARY CONVERT(CAST(name_cn AS CHAR) USING latin1) USING utf8mb4)",
-        
-        // 修复文章内容
-        "UPDATE `{$config['prefix']}article_content` SET 
-            content = CONVERT(BINARY CONVERT(CAST(content AS CHAR) USING latin1) USING utf8mb4)",
-        
-        // 修复文章分类
-        "UPDATE `{$config['prefix']}article_category` SET 
-            title = CONVERT(BINARY CONVERT(CAST(title AS CHAR) USING latin1) USING utf8mb4),
-            intr = CONVERT(BINARY CONVERT(CAST(intr AS CHAR) USING latin1) USING utf8mb4)",
-        
-        // 修复商品分类（关键！侧边栏菜单数据）
-        "UPDATE `{$config['prefix']}store_category` SET 
-            cate_name = CONVERT(BINARY CONVERT(CAST(cate_name AS CHAR) USING latin1) USING utf8mb4)",
-        
-        // 修复商品表
-        "UPDATE `{$config['prefix']}store_product` SET 
-            store_name = CONVERT(BINARY CONVERT(CAST(store_name AS CHAR) USING latin1) USING utf8mb4),
-            keyword = CONVERT(BINARY CONVERT(CAST(keyword AS CHAR) USING latin1) USING utf8mb4)",
-    ];
+    echo "</table>\n";
     
-    foreach ($fixes as $i => $sql) {
-        try {
-            $count = $pdo->exec($sql);
-            echo "<div class='success'>✅ 修复步骤 " . ($i+1) . " 完成，影响行数: " . ($count ?: 0) . "</div>\n";
-        } catch (Exception $e) {
-            echo "<div class='warn'>⚠️ 步骤 " . ($i+1) . " 跳过: " . $e->getMessage() . "</div>\n";
-        }
+    echo "<div class='summary'>";
+    echo "📊 扫描完成：<br>";
+    echo "✅ 修复了 <strong>{$totalGarbled}</strong> 个表中 <strong>{$totalFixed}</strong> 条乱码数据<br>";
+    if (!empty($fixedTables)) {
+        echo "📋 修复的表：<strong>" . implode('</strong>, <strong>', $fixedTables) . "</strong><br>";
     }
+    echo "</div>\n";
     
-    echo "<div class='success'>✅ 中文乱码修复完成！</div>\n";
+    echo "<div class='success'>✅ 数据库中文乱码修复完成！</div>\n";
     
     # ---- 第二步：检查并重置管理员密码 ----
     echo "<h2>🔐 第二步：管理后台账号检查</h2>";
@@ -128,8 +153,7 @@ try {
         echo "<div class='error'>❌ 未找到任何管理员账号！</div>\n";
     } else {
         echo "<div class='info'>📋 找到 " . count($admins) . " 个管理员账号：</div>\n";
-        echo "<table border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse;width:100%;margin:10px 0'>";
-        echo "<tr style='background:#f5f5f5'><th>ID</th><th>账号</th><th>姓名</th><th>状态</th><th>是否删除</th></tr>";
+        echo "<table><tr><th>ID</th><th>账号</th><th>姓名</th><th>状态</th><th>是否删除</th></tr>";
         
         foreach ($admins as $admin) {
             $statusLabel = $admin['status'] ? '<span class="success">正常</span>' : '<span class="error">禁用</span>';
@@ -153,22 +177,8 @@ try {
         }
     }
     
-    # ---- 第三步：修复系统配置 ----
-    echo "<h2>⚙️ 第三步：检查系统配置</h2>";
-    
-    // 检查网站配置编码
-    try {
-        $stmt = $pdo->query("SELECT menu_name, value, show_type FROM `{$config['prefix']}system_config` WHERE menu_name LIKE '%site%' OR menu_name LIKE '%name%' LIMIT 5");
-        $configs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        if (!empty($configs)) {
-            echo "<div class='success'>✅ 系统配置正常</div>\n";
-        }
-    } catch (Exception $e) {
-        echo "<div class='warn'>⚠️ 检查配置时出错: " . $e->getMessage() . "</div>\n";
-    }
-    
     echo "<hr>";
-    echo "<div class='success' style='font-size:18px;padding:15px'>🎉 所有修复操作已完成！</div>\n";
+    echo "<div class='summary'>🎉 所有修复操作已完成！</div>\n";
     echo "<div class='warn'>⚠️ 请立即删除此文件（fix_all.php），防止被他人利用！</div>\n";
     
 } catch (Exception $e) {
