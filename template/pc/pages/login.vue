@@ -14,40 +14,15 @@
       <div class="login-card">
         <!-- 标签切换 -->
         <div class="tab-bar">
-          <span class="tab-item" :class="{ active: current === 2 }" @click="current = 2">账号登录</span>
-          <span class="tab-item" :class="{ active: current === 1 }" @click="current = 1">免密码登录</span>
+          <span class="tab-item" :class="{ active: current === 1 }" @click="current = 1">密码登录</span>
+          <span class="tab-item" :class="{ active: current === 2 }" @click="current = 2">短信登录/注册</span>
           <span class="tab-item wx-tab" v-if="appidNum" @click="ewmLogin">
             <span class="iconfont icon-weixindenglu1"></span> 微信登录
           </span>
         </div>
 
-        <!-- 免密码登录 / 手机号快速注册 -->
+        <!-- 密码登录 -->
         <div class="form-wrapper" v-show="current === 1">
-          <div class="form-group">
-            <label class="form-label">手机号</label>
-            <div class="input-wrap phone-input">
-              <span class="phone-prefix">+86</span>
-              <input type="text" placeholder="请输入手机号码" v-model="account" maxlength="11" class="form-input" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">验证码</label>
-            <div class="input-wrap code-input">
-              <input type="text" placeholder="请输入验证码" v-model="captcha" class="form-input" />
-              <button class="code-btn" :disabled="disabled" :class="{ on: disabled }" @click="getVerify">
-                {{ text }}
-              </button>
-            </div>
-          </div>
-          <div class="agree-row">
-            <el-checkbox v-model="agreement"></el-checkbox>
-            <span class="agree-text">我已阅读并同意<span class="agree-link" @click="agreementTap(4)">《用户协议》</span>和<span class="agree-link" @click="agreementTap(3)">《隐私协议》</span></span>
-          </div>
-          <button class="login-btn" @click="loginMobile">登录/注册</button>
-        </div>
-
-        <!-- 账号登录 -->
-        <div class="form-wrapper" v-show="current === 2">
           <div class="form-group">
             <label class="form-label">账号</label>
             <div class="input-wrap">
@@ -74,8 +49,33 @@
           <button class="login-btn" @click="loginH5">立即登录</button>
           <div class="register-row">
             <span class="no-account">还没有账号？</span>
-            <span class="register-link" @click="current = 1">立即注册</span>
+            <span class="register-link" @click="current = 2">短信快速注册</span>
           </div>
+        </div>
+
+        <!-- 短信登录/注册 -->
+        <div class="form-wrapper" v-show="current === 2">
+          <div class="form-group">
+            <label class="form-label">手机号</label>
+            <div class="input-wrap phone-input">
+              <span class="phone-prefix">+86</span>
+              <input type="text" placeholder="请输入手机号码" v-model="account" maxlength="11" class="form-input" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">验证码</label>
+            <div class="input-wrap code-input">
+              <input type="text" placeholder="请输入验证码" v-model="captcha" class="form-input" />
+              <button class="code-btn" :disabled="disabled" :class="{ on: disabled }" @click="getVerify">
+                {{ text }}
+              </button>
+            </div>
+          </div>
+          <div class="agree-row">
+            <el-checkbox v-model="agreement"></el-checkbox>
+            <span class="agree-text">我已阅读并同意<span class="agree-link" @click="agreementTap(4)">《用户协议》</span>和<span class="agree-link" @click="agreementTap(3)">《隐私协议》</span></span>
+          </div>
+          <button class="login-btn" @click="loginMobile">登录/注册</button>
         </div>
       </div>
     </div>
@@ -117,7 +117,7 @@ export default {
   data() {
     return {
       verifyModal: false,
-      current: 1,
+      current: 1, // 1=密码登录, 2=短信登录/注册
       account: "",
       password: "",
       captcha: "",
@@ -178,9 +178,9 @@ export default {
     keyDown(e) {
       if (e.keyCode === 13) {
         if (this.current === 1) {
-          this.loginMobile();
-        } else if (this.current === 2) {
           this.loginH5();
+        } else if (this.current === 2) {
+          this.loginMobile();
         }
       }
     },
