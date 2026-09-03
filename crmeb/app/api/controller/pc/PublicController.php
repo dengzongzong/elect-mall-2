@@ -120,7 +120,7 @@ class PublicController
         }
         $data = $services->getList($where, $page, $limit);
         foreach ($data['list'] as &$item) {
-            $item['add_time'] = date('Y-m-d H:i', $item['add_time']);
+            $item['add_time'] = is_numeric($item['add_time']) ? date('Y-m-d H:i', $item['add_time']) : $item['add_time'];
         }
         return app('json')->success($data);
     }

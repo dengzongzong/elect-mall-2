@@ -166,7 +166,7 @@ class ArticleServices extends BaseServices
         if ($info) {
             $info = $info->toArray();
             $info['visit'] = (int)$info['visit'];
-            $info['add_time'] = date('Y-m-d', $info['add_time']);
+            $info['add_time'] = is_numeric($info['add_time']) ? date('Y-m-d', $info['add_time']) : $info['add_time'];
             $info['content'] = htmlspecialchars_decode($info['content']);
         }
         return $info;
