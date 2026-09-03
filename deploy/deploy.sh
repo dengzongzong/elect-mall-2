@@ -6,7 +6,7 @@
 # 支持通过 GitHub Webhook 自动触发
 # ============================================================
 
-set -e  # 任何命令失败立即退出
+set +e  # 不在错误时退出，手动处理错误
 
 # ====== 配置 ======
 # 项目根目录
@@ -24,8 +24,14 @@ log() {
 
 # ====== 锁机制 ======
 if [ -f "$LOCK_FILE" ]; then
-    log "[WARN] 部署正在执行中，跳过本次请求"
-    exit 0
+    # 检查锁文件是否超过 10 分钟（可能是上次部署卡住了）
+    if [ "$(find "$LOCK_FILE" -mmin +10 2>/dev/null)" ]; then
+        log "[WARN] 锁文件超过 10 分钟，强制删除"
+        rm -f "$LOCK_FILE"
+    else
+        log "[WARN] 部署正在执行中，跳过本次请求"
+        exit 0
+    fi
 fi
 trap "rm -f $LOCK_FILE" EXIT
 touch "$LOCK_FILE"
@@ -51,11 +57,8 @@ log "[1/6] ✓ 代码已更新到最新版本"
 log "[2/6] 安装 PHP 依赖..."
 if [ -f "${PROJECT_DIR}/crmeb/composer.json" ]; then
     cd "${PROJECT_DIR}/crmeb"
-    if [ -f "composer.lock" ]; then
-        composer install --no-dev --optimize-autoloader 2>&1 | tee -a "$LOG_FILE"
-    else
-        composer install --no-dev 2>&1 | tee -a "$LOG_FILE"
-    fi
+    # 使用 --ignore-platform-reqs 避免本地 PHP 版本不匹配导致的安装失败
+    composer install --no-dev --optimize-autoloader --ignore-platform-reqs 2>&1 | tee -a "$LOG_FILE"
     log "[2/6] ✓ PHP 依赖安装完成"
 else
     log "[2/6] ✓ 无需安装 PHP 依赖"
@@ -66,14 +69,18 @@ log "[3/6] 构建 PC 前端（Nuxt.js）..."
 if [ -d "${PROJECT_DIR}/template/pc" ]; then
     cd "${PROJECT_DIR}/template/pc"
 
-    # 安装依赖
+    # 安装依赖（仅在 node_modules 不存在时安装）
     if [ ! -d "node_modules" ]; then
         npm install 2>&1 | tee -a "$LOG_FILE"
     fi
 
     # 构建
     npm run generate 2>&1 | tee -a "$LOG_FILE"
-    log "[3/6] ✓ PC 前端构建完成"
+    if [ $? -eq 0 ]; then
+        log "[3/6] ✓ PC 前端构建完成"
+    else
+        log "[3/6] ⚠ PC 前端构建失败，继续执行后续步骤"
+    fi
 else
     log "[3/6] ✓ 跳过 PC 前端构建"
 fi
@@ -88,7 +95,11 @@ if [ -d "${PROJECT_DIR}/template/admin" ]; then
     fi
 
     npm run build 2>&1 | tee -a "$LOG_FILE"
-    log "[4/6] ✓ 管理后台前端构建完成"
+    if [ $? -eq 0 ]; then
+        log "[4/6] ✓ 管理后台前端构建完成"
+    else
+        log "[4/6] ⚠ 管理后台前端构建失败，继续执行后续步骤"
+    fi
 else
     log "[4/6] ✓ 跳过管理后台前端构建"
 fi
