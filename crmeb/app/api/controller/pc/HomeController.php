@@ -67,6 +67,22 @@ class HomeController
     }
 
     /**
+     * 获取品牌列表
+     * @return mixed
+     */
+    public function getBrandList()
+    {
+        $brandModel = app()->make(\app\model\product\product\StoreCategory::class);
+        $db = app()->db->table('eb_brand');
+        $list = $db->where('status', 1)
+            ->where('is_del', 0)
+            ->order('sort ASC')
+            ->select()
+            ->toArray();
+        return app('json')->success(compact('list'));
+    }
+
+    /**
      * 获取手机购买跳转url配置
      * @return string
      */

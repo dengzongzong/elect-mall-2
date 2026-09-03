@@ -103,6 +103,7 @@ export default {
         { title: '首页', url: '/' },
         { title: '全部商品', url: '/goods_list' },
         { title: '新品上市', url: '/goods_list?type=3' },
+        { title: '品牌专区', url: '/brand_list' },
       ]
     };
   },

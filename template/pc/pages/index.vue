@@ -188,6 +188,25 @@
       </div>
     </div>
 
+    <!-- 热门品牌区域 -->
+    <div class="container hot-brands-section">
+      <div class="section-header">
+        <h2 class="section-title">热门品牌</h2>
+        <nuxt-link to="/brand_list" class="more-link">
+          更多<span class="iconfont icon-you"></span>
+        </nuxt-link>
+      </div>
+      <div class="hot-brands-grid">
+        <nuxt-link to="/brand_list" class="hot-brand-item" v-for="brand in hotBrands" :key="brand.id">
+          <span class="hot-brand-text">
+            <span class="hot-brand-en">{{ brand.name_en }}</span>
+            <span class="hot-brand-cn">{{ brand.name_cn }}</span>
+          </span>
+          <span v-if="brand.is_authorized" class="hot-brand-tag">授权</span>
+        </nuxt-link>
+      </div>
+    </div>
+
     <!-- 首发新品 / 特色产品轮播 -->
     <div class="container featured-products-section" v-if="newGoods.length">
       <div class="section-header">
@@ -330,6 +349,7 @@ export default {
       swiperData: [],
       homeAdList: [],
       newsList: [],
+      brandList: [],
       categoryList: [],
       categoryCurrent: {},
       datatime: 0,
@@ -380,14 +400,15 @@ export default {
     };
   },
   async asyncData({ app }) {
-    let [categoryMsg, seckillMsg, indexMsg, bannerMsg, adMsg, newsMsg] = await Promise.all([
+    let [categoryMsg, seckillMsg, indexMsg, bannerMsg, adMsg, newsMsg, brandMsg] = await Promise.all([
       //获取banner分类
       app.$axios.get("/category"),
       app.$axios.get("/seckill/index"),
       app.$axios.get("/index"),
       app.$axios.get("/pc/get_banner"),
       app.$axios.get("/pc/get_home_ad"),
-      app.$axios.get("/pc/get_news_list", { params: { limit: 6 } })
+      app.$axios.get("/pc/get_news_list", { params: { limit: 6 } }),
+      app.$axios.get("/pc/get_brand_list")
     ]);
     return {
       categoryList: categoryMsg.data,
@@ -401,6 +422,7 @@ export default {
       swiperData: bannerMsg.data.list,
       homeAdList: adMsg.data.list || [],
       newsList: newsMsg.data.list || [],
+      brandList: brandMsg.data.list || [],
       siteName: indexMsg.data.site_name
     };
   },
@@ -424,6 +446,11 @@ export default {
   },
   beforeDestroy() {
     window.onscroll = null;
+  },
+  computed: {
+    hotBrands() {
+      return this.brandList.slice(0, 12);
+    }
   },
   methods: {
     goCate(item, index) {
@@ -924,6 +951,71 @@ export default {
           }
         }
       }
+    }
+  }
+}
+
+/* 热门品牌区域 */
+.hot-brands-section {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+
+  .hot-brands-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .hot-brand-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border: 1px solid #eaeaea;
+    border-radius: 4px;
+    text-decoration: none;
+    width: calc(25% - 8px);
+    transition: all 0.3s;
+    position: relative;
+
+    &:hover {
+      border-color: #e93323;
+      box-shadow: 0 2px 8px rgba(233, 51, 35, 0.1);
+    }
+
+    .hot-brand-text {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .hot-brand-en {
+      font-size: 14px;
+      color: #333;
+      font-weight: bold;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hot-brand-cn {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+      font-weight: normal;
+    }
+
+    .hot-brand-tag {
+      position: absolute;
+      top: 0;
+      right: 0;
+      padding: 2px 6px;
+      background-color: #e93323;
+      color: #fff;
+      font-size: 10px;
+      border-radius: 0 4px 0 4px;
     }
   }
 }
