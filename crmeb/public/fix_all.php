@@ -385,7 +385,7 @@ try {
         if (!empty($admins)) {
             $admin = $admins[0];
             $newPwd = 'admin123';
-            $hashedPwd = md5($newPwd);
+            $hashedPwd = password_hash($newPwd, PASSWORD_BCRYPT);
             
             $updateStmt = $pdo->prepare("UPDATE `{$adminTable}` SET pwd = ?, status = 1, is_del = 0 WHERE id = ?");
             $updateStmt->execute([$hashedPwd, $admin['id']]);
