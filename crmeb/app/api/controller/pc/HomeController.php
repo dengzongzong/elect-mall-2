@@ -175,4 +175,38 @@ class HomeController
         }
         return app('json')->success(compact('items'));
     }
+
+    /**
+     * 供应商合作 - 提交申请
+     * @param Request $request
+     * @return mixed
+     */
+    public function partnerSubmit(Request $request)
+    {
+        $data = $request->postMore([
+            ['companyName', ''],
+            ['brand', ''],
+            ['category', ''],
+            ['contactName', ''],
+            ['phone', ''],
+            ['email', '']
+        ]);
+        // 简单验证
+        if (!$data['companyName'] || !$data['brand'] || !$data['contactName'] || !$data['phone'] || !$data['email']) {
+            return app('json')->fail('请填写所有必填项');
+        }
+        // 保存到数据库
+        $db = app()->db->table('eb_partner_apply');
+        $db->insert([
+            'company_name' => $data['companyName'],
+            'brand' => $data['brand'],
+            'category' => $data['category'],
+            'contact_name' => $data['contactName'],
+            'phone' => $data['phone'],
+            'email' => $data['email'],
+            'add_time' => date('Y-m-d H:i:s'),
+            'status' => 0
+        ]);
+        return app('json')->success('提交成功，我们会尽快联系您');
+    }
 }

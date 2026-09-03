@@ -32,6 +32,7 @@ Route::group('pc', function () {
         Route::get('get_brand_list', 'pc.HomeController/getBrandList')->name('getBrandList')->option(['real_name' => 'PC品牌专区品牌列表']);//PC品牌专区品牌列表
         Route::post('bom_process_text', 'pc.HomeController/bomProcessText')->name('bomProcessText')->option(['real_name' => 'BOM配单处理文本']);//BOM配单处理文本
         Route::post('bom_upload', 'pc.HomeController/bomUpload')->name('bomUpload')->option(['real_name' => 'BOM配单上传文件']);//BOM配单上传文件
+        Route::post('partner_submit', 'pc.HomeController/partnerSubmit')->name('partnerSubmit')->option(['real_name' => '供应商合作提交申请']);//供应商合作提交申请
         Route::get('get_category_product', 'pc.HomeController/getCategoryProduct')->name('getCategoryProduct')->option(['real_name' => '首页分类尚品']);//首页分类尚品
         Route::get('get_products', 'pc.ProductController/getProductList')->name('getProductList')->option(['real_name' => '商品列表']);//商品列表
         Route::get('get_product_code/:product_id/[:type]', 'pc.ProductController/getProductRoutineCode')->name('getProductRoutineCode')->option(['real_name' => '商品详情小程序二维码']);//商品详情小程序二维码

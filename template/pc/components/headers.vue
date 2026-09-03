@@ -105,6 +105,7 @@ export default {
         { title: '新品上市', url: '/goods_list?type=3' },
         { title: '品牌专区', url: '/brand_list' },
         { title: 'BOM配单', url: '/bom_copy' },
+        { title: '供应商合作', url: '/partner_detail' },
       ]
     };
   },

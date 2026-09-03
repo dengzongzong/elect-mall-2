@@ -188,3 +188,19 @@ VALUES (NULL, 0, 'PC首页右侧广告位', 'PC首页轮播图右侧的广告位
         'pc_home_ad',
         '[{\"name\":\"图片\",\"title\":\"pic\",\"type\":\"image\",\"param\":\"\",\"required\":1},{\"name\":\"链接\",\"title\":\"url\",\"type\":\"input\",\"param\":\"\",\"required\":0},{\"name\":\"排序\",\"title\":\"sort\",\"type\":\"number\",\"param\":\"\",\"required\":0},{\"name\":\"状态\",\"title\":\"status\",\"type\":\"radio\",\"param\":\"显示|1\\r\\n隐藏|0\",\"required\":0,\"value\":\"1\"}]')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `info` = VALUES(`info`), `fields` = VALUES(`fields`);
+
+-- ============================================================
+-- 供应商合作申请表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `eb_partner_apply` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `company_name` varchar(255) NOT NULL DEFAULT '' COMMENT '公司名称',
+    `brand` varchar(255) NOT NULL DEFAULT '' COMMENT '商品品牌',
+    `category` varchar(50) NOT NULL DEFAULT '' COMMENT '类别(原厂/代理商)',
+    `contact_name` varchar(100) NOT NULL DEFAULT '' COMMENT '联系人',
+    `phone` varchar(20) NOT NULL DEFAULT '' COMMENT '手机号',
+    `email` varchar(100) NOT NULL DEFAULT '' COMMENT '邮箱',
+    `add_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+    `status` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '状态 0=待处理 1=已联系 2=已完成',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商合作申请表';
