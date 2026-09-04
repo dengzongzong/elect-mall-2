@@ -33,11 +33,11 @@ touch "$LOCK_FILE"
 
 log "========== START DEPLOY =========="
 
-# 0. 修复.git目录权限
-log "[0/7] Fix .git permissions..."
-chmod -R 777 "${PROJECT_DIR}/.git" 2>/dev/null || true
-find "${PROJECT_DIR}/.git" -type d -exec chmod 777 {} \; 2>/dev/null || true
-find "${PROJECT_DIR}/.git" -type f -exec chmod 666 {} \; 2>/dev/null || true
+# 0. 修复.git目录权限（使用sudo，因为.git可能被root所有）
+log "[0/7] Fix .git permissions (sudo)..."
+sudo chmod -R 777 "${PROJECT_DIR}/.git" 2>/dev/null || true
+sudo find "${PROJECT_DIR}/.git" -type d -exec chmod 777 {} \; 2>/dev/null || true
+sudo find "${PROJECT_DIR}/.git" -type f -exec chmod 666 {} \; 2>/dev/null || true
 log "[0/7] Done"
 
 # 1. 设置正确的远程仓库地址（带token，解决私有仓库认证问题）

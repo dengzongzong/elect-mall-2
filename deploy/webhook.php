@@ -144,6 +144,13 @@ fixGitRemote();
 // 清理过期锁文件
 cleanLockFile();
 
+// 使用sudo修复.git目录权限（这是关键：sudo允许nginx用户操作root所有的.git目录）
+$gitDir = REPO_DIR . '/.git';
+if (is_dir($gitDir)) {
+    exec("sudo chmod -R 777 " . escapeshellarg($gitDir) . " 2>&1", $fixOut, $fixCode);
+    writeLog("[FIX] sudo chmod .git: " . ($fixCode === 0 ? 'OK' : 'FAILED'));
+}
+
 // 异步执行部署脚本
 $logFile = LOG_FILE;
 $cmd = "nohup bash " . escapeshellarg(DEPLOY_SCRIPT) . " >> {$logFile} 2>&1 &";

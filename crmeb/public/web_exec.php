@@ -43,15 +43,13 @@ if (!isset($_POST['run'])):
 echo "<div class='output'>\n";
 echo "=== 开始修复 ===\n\n";
 
-// 0. 修复.git目录权限
+// 0. 修复.git目录权限（使用sudo提权，且只做一次chmod不做递归find避免超时）
 echo "[0/5] 修复 .git 目录权限...\n";
 ob_flush();
 flush();
 $output = [];
-exec('chmod -R 777 /var/www/elect-mall/.git 2>&1', $output);
+exec('sudo chmod -R 777 /var/www/elect-mall/.git 2>&1', $output);
 echo implode("\n", $output) . "\n";
-exec('find /var/www/elect-mall/.git -type d -exec chmod 777 {} \\; 2>&1', $output);
-exec('find /var/www/elect-mall/.git -type f -exec chmod 666 {} \\; 2>&1');
 echo "✓ 权限修复完成\n\n";
 
 // 1. 拉取最新代码
