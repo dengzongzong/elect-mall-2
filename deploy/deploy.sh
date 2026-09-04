@@ -10,8 +10,17 @@ PROJECT_DIR="/var/www/elect-mall"
 LOG_FILE="${PROJECT_DIR}/deploy/deploy.log"
 LOCK_FILE="${PROJECT_DIR}/deploy/deploy.lock"
 WEB_ROOT="${PROJECT_DIR}/crmeb/public"
-# 如果远程URL已包含token则直接使用，否则使用公开地址
-GIT_REPO=$(cd "$PROJECT_DIR" && git remote get-url origin 2>/dev/null || echo "https://github.com/dengzongzong/elect-mall-2.git")
+# 从 .git_token 文件读取token（webhook.php 负责写入此文件）
+# 如果文件不存在或为空，则使用公开地址
+GIT_TOKEN_FILE="${PROJECT_DIR}/deploy/.git_token"
+if [ -f "$GIT_TOKEN_FILE" ]; then
+    GIT_TOKEN=$(cat "$GIT_TOKEN_FILE" 2>/dev/null | tr -d '\n\r')
+fi
+if [ -n "$GIT_TOKEN" ]; then
+    GIT_REPO="https://dengzongzong:${GIT_TOKEN}@github.com/dengzongzong/elect-mall-2.git"
+else
+    GIT_REPO="https://github.com/dengzongzong/elect-mall-2.git"
+fi
 
 log() {
     local time=$(date '+%Y-%m-%d %H:%M:%S')
@@ -47,7 +56,8 @@ log "[0/8] Done"
 # 1. 设置正确的远程仓库地址（带token，解决私有仓库认证问题）
 log "[1/8] Set git remote..."
 cd "$PROJECT_DIR"
-CURRENT_REMOTE=$(git remote get-url origin 2>/dev/null)
+# 使用 git remote show 获取远程URL（兼容旧版git）
+CURRENT_REMOTE=$(git remote show origin 2>/dev/null | grep "Fetch URL" | awk '{print $3}')
 if [ "$CURRENT_REMOTE" != "$GIT_REPO" ]; then
     git remote set-url origin "$GIT_REPO"
     log "[1/8] Updated remote URL"
