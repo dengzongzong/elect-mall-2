@@ -1,265 +1,240 @@
 <?php
 /**
- * ============================================================
- * 产品分类导入脚本 - 陶瓷贴片电容器
- * ============================================================
+ * 商品分类导入脚本：陶瓷贴片电容器
+ * 直接访问此文件即可执行导入
  * 
- * 功能：导入两级分类结构
- * 一级分类：陶瓷贴片电容器
- * 二级分类：该类别下的所有品牌（共13个）
- * 
- * 使用方法：访问 http://你的域名/import_categories.php 即可执行
- * 安全提醒：执行成功后请立即删除此文件！
- * ============================================================
+ * 数据结构：
+ * - 一级分类：陶瓷贴片电容器 (pid = 0)
+ * - 二级分类：13个品牌 (pid = 一级分类ID)
  */
 
 header('Content-Type: text/html; charset=utf-8');
-
-// 防止脚本超时
 set_time_limit(120);
 
-// 加载ThinkPHP框架
-require __DIR__ . '/../vendor/autoload.php';
-
-// 应用入口文件
-$app = new think\App();
-$app->initialize();
-
-use think\facade\Db;
-
-echo '<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>产品分类导入 - 陶瓷贴片电容器</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: -apple-system, "Microsoft YaHei", sans-serif;
-    max-width: 960px; margin: 30px auto; padding: 20px;
-    background: #f5f7fa; color: #333; line-height: 1.7;
+// 加载ThinkPHP环境
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (!file_exists($autoload)) {
+    die("❌ 找不到 autoload.php，请确认路径正确");
 }
-h1 {
-    color: #1a1a2e; border-bottom: 3px solid #e94560;
-    padding-bottom: 12px; margin-bottom: 24px; font-size: 24px;
-}
-h2 {
-    color: #1a1a2e; border-left: 4px solid #e94560;
-    padding-left: 12px; margin: 28px 0 16px 0; font-size: 18px;
-}
-.summary-box {
-    background: #fff; border-radius: 8px; padding: 20px;
-    margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.output {
-    background: #1a1a2e; color: #00ff88; padding: 16px;
-    margin: 12px 0; border-radius: 6px; font-family: "Consolas","Monaco",monospace;
-    font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all;
-    max-height: 600px; overflow-y: auto;
-}
-.status-success { color: #00c853; font-weight: bold; }
-.status-warning { color: #ff9100; font-weight: bold; }
-.status-error { color: #ff1744; font-weight: bold; }
-.status-info { color: #448aff; font-weight: bold; }
-.btn {
-    display: inline-block; background: #e94560; color: #fff;
-    border: none; padding: 14px 32px; font-size: 16px; font-weight: bold;
-    cursor: pointer; border-radius: 6px; transition: all 0.2s;
-    text-decoration: none;
-}
-.btn:hover { background: #d63851; transform: translateY(-1px); }
-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
-table th, table td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
-table th { background: #f0f0f0; font-weight: 600; }
-.warn-box { background: #fff3e0; border: 1px solid #ffcc02; border-radius: 6px; padding: 12px; margin: 12px 0; }
-</style>
-</head>
-<body>
+require $autoload;
 
-<h1>产品分类导入 - 陶瓷贴片电容器</h1>
-
-<div class="summary-box">';
-?>
-<?php
-// 定义两级分类数据
-// 一级分类：陶瓷贴片电容器
-// 二级分类：13个品牌
-
-$categoryData = [
-    // 一级分类
-    'parent' => [
-        'cate_name' => '陶瓷贴片电容器',
-        'pid' => 0,
-        'sort' => 1,
-        'is_show' => 1,
-        'pic' => '',
-        'add_time' => time()
-    ],
-    // 二级分类（品牌列表）
-    'children' => [
-        ['name' => 'muRata(村田)', 'sort' => 1],
-        ['name' => 'TDK', 'sort' => 2],
-        ['name' => 'Taiyo Yuden(太诱)', 'sort' => 3],
-        ['name' => 'Kyocera(京瓷)', 'sort' => 4],
-        ['name' => 'Walsin(华科)', 'sort' => 5],
-        ['name' => 'SAMSUNG(三星)', 'sort' => 6],
-        ['name' => 'Holy Stone(禾伸堂)', 'sort' => 7],
-        ['name' => 'PSA(信昌)', 'sort' => 8],
-        ['name' => 'Yageo(国巨)', 'sort' => 9],
-        ['name' => 'FH(风华)', 'sort' => 10],
-        ['name' => 'CCTC(三环)', 'sort' => 11],
-        ['name' => 'VIYONG(微容)', 'sort' => 12],
-        ['name' => 'SAMWHA(三和)', 'sort' => 13],
-    ]
-];
-
-echo "<p><strong>导入数据预览：</strong></p>";
-echo "<table>";
-echo "<tr><th>层级</th><th>分类名称</th><th>父ID</th></tr>";
-echo "<tr><td>一级分类</td><td>{$categoryData['parent']['cate_name']}</td><td>0</td></tr>";
-foreach ($categoryData['children'] as $child) {
-    echo "<tr><td>二级分类</td><td>{$child['name']}</td><td>一级分类ID</td></tr>";
-}
-echo "</table>";
-
-echo "<p>总共：1个一级分类 + " . count($categoryData['children']) . "个二级分类 = " . (count($categoryData['children']) + 1) . "条记录</p>";
-echo "</div>";
-
-// 检查是否已经执行
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo '<div class="summary-box">
-    <form method="post">
-        <p>请确认数据正确，点击下方按钮开始导入：</p>
-        <br>
-        <button type="submit" class="btn">开始导入</button>
-    </form>
-    </div>';
-    echo '</body></html>';
-    exit;
-}
-
-echo '<h2>执行结果</h2>
-<div class="output">';
-
-echo "[1/3] 开始连接数据库...\n";
-try {
-    // 检查数据库连接
-    $connection = Db::connect();
-    echo "✓ 数据库连接成功\n\n";
-} catch (Exception $e) {
-    echo "✗ 数据库连接失败: " . $e->getMessage() . "\n";
-    echo '</div></body></html>';
-    exit;
-}
-
-// 检查表是否存在
-echo "[2/3] 检查数据表 eb_store_category...\n";
-try {
-    $hasTable = $connection->query("SHOW TABLES LIKE 'eb_store_category'");
-    if (!$hasTable) {
-        echo "✗ 数据表 eb_store_category 不存在，请先安装系统\n";
-        echo '</div></body></html>';
-        exit;
-    }
-    echo "✓ 数据表存在\n\n";
-} catch (Exception $e) {
-    echo "✗ 检查表失败: " . $e->getMessage() . "\n";
-    echo '</div></body></html>';
-    exit;
-}
-
-// 开始导入
-echo "[3/3] 开始导入数据...\n\n";
-
-$successCount = 0;
-$errorCount = 0;
-$errors = [];
-
-try {
-    // 检查一级分类是否已存在
-    $existingParent = Db::name('store_category')
-        ->where('cate_name', $categoryData['parent']['cate_name'])
-        ->where('pid', 0)
-        ->find();
+// 读取.env配置
+function parseEnv($file) {
+    $defaults = [
+        'hostname' => '127.0.0.1',
+        'database' => 'crmeb31',
+        'username' => 'root',
+        'password' => 'root',
+        'hostport' => '3306',
+        'charset' => 'utf8',
+        'prefix' => 'eb_',
+    ];
     
-    if ($existingParent) {
-        echo "<span class=\"status-warning\">⚠ 一级分类 '{$categoryData['parent']['cate_name']}' 已存在 (ID: {$existingParent['id']})，将使用现有分类</span>\n";
-        $parentId = $existingParent['id'];
-        $successCount++;
-    } else {
-        // 插入一级分类
-        $parentId = Db::name('store_category')->insertGetId($categoryData['parent']);
-        echo "<span class=\"status-success\">✓ 成功插入一级分类 '{$categoryData['parent']['cate_name']}' (ID: {$parentId})</span>\n";
-        $successCount++;
-    }
-
-    echo "\n开始插入二级分类...\n";
-
-    // 插入二级分类
-    foreach ($categoryData['children'] as $index => $child) {
-        try {
-            // 检查是否已存在
-            $existingChild = Db::name('store_category')
-                ->where('cate_name', $child['name'])
-                ->where('pid', $parentId)
-                ->find();
+    if (!file_exists($file)) return $defaults;
+    
+    $content = file_get_contents($file);
+    $lines = preg_split('/\r\n|\r|\n/', $content);
+    $section = '';
+    
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (empty($line) || strpos($line, '#') === 0) continue;
+        
+        if (strpos($line, '[') === 0 && strpos($line, ']') !== false) {
+            $section = strtolower(trim($line, '[]'));
+            continue;
+        }
+        
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = strtolower(trim($key));
+            $value = trim($value);
             
-            if ($existingChild) {
-                echo "<span class=\"status-warning\">  ⚠ '{$child['name']}' 已存在 (ID: {$existingChild['id']})，跳过</span>\n";
-                continue;
+            if ($section === 'database') {
+                switch ($key) {
+                    case 'hostname': $defaults['hostname'] = $value; break;
+                    case 'database': $defaults['database'] = $value; break;
+                    case 'username': $defaults['username'] = $value; break;
+                    case 'password': $defaults['password'] = $value; break;
+                    case 'hostport': $defaults['hostport'] = $value; break;
+                    case 'charset': $defaults['charset'] = $value; break;
+                    case 'prefix': $defaults['prefix'] = $value; break;
+                }
             }
-
-            // 插入数据
-            $childData = [
-                'cate_name' => $child['name'],
-                'pid' => $parentId,
-                'sort' => $child['sort'],
-                'is_show' => 1,
-                'pic' => '',
-                'add_time' => time()
-            ];
-
-            $childId = Db::name('store_category')->insertGetId($childData);
-            echo "<span class=\"status-success\">  ✓ '{$child['name']}' (ID: {$childId})</span>\n";
-            $successCount++;
-
-        } catch (Exception $e) {
-            echo "<span class=\"status-error\">  ✗ '{$child['name']}' 插入失败: " . $e->getMessage() . "</span>\n";
-            $errorCount++;
-            $errors[] = "{$child['name']}: " . $e->getMessage();
         }
     }
+    
+    return $defaults;
+}
+
+$envFile = __DIR__ . '/../.env';
+$config = parseEnv($envFile);
+extract($config);
+
+echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>商品分类导入 - 陶瓷贴片电容器</title>';
+echo '<style>body{font-family:"Microsoft YaHei",sans-serif;max-width:900px;margin:20px auto;padding:20px;line-height:1.8}';
+echo 'h1{color:#2c3e50;border-bottom:3px solid #e74c3c;padding-bottom:10px}h2{color:#2c3e50;border-left:4px solid #e74c3c;padding-left:10px}';
+echo '.success{color:#090;background:#e8f8e8;padding:5px 10px;border-radius:4px;margin:5px 0}';
+echo '.error{color:#900;background:#fce8e8;padding:5px 10px;border-radius:4px;margin:5px 0}';
+echo '.info{background:#f0f8ff;padding:5px 10px;border-radius:4px;margin:5px 0}';
+echo 'table{border-collapse:collapse;width:100%;margin:10px 0}th,td{border:1px solid #ddd;padding:6px 10px;text-align:left}th{background:#f5f5f5}</style></head><body>';
+echo '<h1>商品分类导入 - 陶瓷贴片电容器</h1>';
+
+try {
+    // 连接数据库
+    $pdo = new PDO(
+        "mysql:host={$hostname};port={$hostport};dbname={$database};charset=utf8mb4",
+        $username,
+        $password,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]
+    );
+    echo "<div class='success'>✅ 数据库连接成功: {$database}</div>";
+
+    $categoryTable = $prefix . 'store_category';
+
+    // ============================================================
+    // 第一步：清空所有商品相关数据
+    // ============================================================
+    echo '<h2>第一步：清空所有商品数据</h2>';
+
+    $productTables = [
+        $prefix . 'store_product',
+        $prefix . 'store_product_cate',
+        $prefix . 'store_product_attr',
+        $prefix . 'store_product_attr_value',
+        $prefix . 'store_product_attr_result',
+        $prefix . 'store_product_description',
+        $prefix . 'store_product_coupon',
+        $prefix . 'store_product_label',
+        $prefix . 'store_product_log',
+        $prefix . 'store_product_param',
+        $prefix . 'store_product_protection',
+        $prefix . 'store_product_relation',
+        $prefix . 'store_product_reply',
+        $prefix . 'store_product_virtual',
+        $prefix . 'store_visit',
+    ];
+
+    $totalDeleted = 0;
+    foreach ($productTables as $pt) {
+        try {
+            $count = $pdo->exec("DELETE FROM `{$pt}`");
+            if ($count === false) $count = 0;
+            $totalDeleted += $count;
+            echo "<div class='info'>  📋 {$pt}: 已删除 {$count} 条</div>";
+        } catch (Exception $e) {
+            echo "<div class='info'>  ⚠️ {$pt}: " . $e->getMessage() . " (已忽略)</div>";
+        }
+    }
+    echo "<div class='success'>✅ 商品数据清空完成，共删除 {$totalDeleted} 条记录</div>";
+
+    // ============================================================
+    // 第二步：删除已存在的陶瓷贴片电容器分类
+    // ============================================================
+    echo '<h2>第二步：清理旧数据</h2>';
+
+    $stmt = $pdo->prepare("SELECT id FROM `{$categoryTable}` WHERE cate_name = ? AND pid = 0");
+    $stmt->execute(['陶瓷贴片电容器']);
+    $parentId = $stmt->fetchColumn();
+
+    if ($parentId) {
+        $stmt = $pdo->prepare("DELETE FROM `{$categoryTable}` WHERE pid = ?");
+        $stmt->execute([$parentId]);
+        $childrenDeleted = $stmt->rowCount();
+        $stmt = $pdo->prepare("DELETE FROM `{$categoryTable}` WHERE id = ?");
+        $stmt->execute([$parentId]);
+        echo "<div class='success'>✅ 删除已存在的分类: 1个一级分类 + {$childrenDeleted} 个二级分类</div>";
+    } else {
+        echo "<div class='info'>ℹ️ 未找到已存在的陶瓷贴片电容器分类</div>";
+    }
+
+    // ============================================================
+    // 第三步：插入一级分类
+    // ============================================================
+    echo '<h2>第三步：插入一级分类</h2>';
+
+    $stmt = $pdo->prepare("INSERT INTO `{$categoryTable}` (pid, cate_name, sort, pic, is_show, add_time) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->execute([0, '陶瓷贴片电容器', 1, '', 1, time()]);
+    $parentId = $pdo->lastInsertId();
+    echo "<div class='success'>✅ 一级分类插入成功：陶瓷贴片电容器 (ID: {$parentId})</div>";
+
+    // ============================================================
+    // 第四步：插入13个二级分类（品牌）
+    // ============================================================
+    echo '<h2>第四步：插入二级分类（品牌）</h2>';
+
+    $brands = [
+        1 => 'muRata(村田)',
+        2 => 'TDK',
+        3 => 'Taiyo Yuden(太诱)',
+        4 => 'Kyocera(京瓷)',
+        5 => 'Walsin(华科)',
+        6 => 'SAMSUNG(三星)',
+        7 => 'Holy Stone(禾伸堂)',
+        8 => 'PSA(信昌)',
+        9 => 'Yageo(国巨)',
+        10 => 'FH(风华)',
+        11 => 'CCTC(三环)',
+        12 => 'VIYONG(微容)',
+        13 => 'SAMWHA(三和)',
+    ];
+
+    $inserted = 0;
+    $stmt = $pdo->prepare("INSERT INTO `{$categoryTable}` (pid, cate_name, sort, pic, is_show, add_time) VALUES (?, ?, ?, ?, ?, ?)");
+    
+    echo '<table><tr><th>#</th><th>品牌名称</th><th>状态</th></tr>';
+    foreach ($brands as $sort => $brand) {
+        try {
+            $stmt->execute([$parentId, $brand, $sort, '', 1, time()]);
+            if ($stmt->rowCount() > 0) {
+                $inserted++;
+                echo "<tr><td>{$sort}</td><td>" . htmlspecialchars($brand) . "</td><td class='success'>✅ 成功</td></tr>";
+            } else {
+                echo "<tr><td>{$sort}</td><td>" . htmlspecialchars($brand) . "</td><td class='error'>⚠️ 无返回</td></tr>";
+            }
+        } catch (Exception $e) {
+            echo "<tr><td>{$sort}</td><td>" . htmlspecialchars($brand) . "</td><td class='error'>❌ " . $e->getMessage() . "</td></tr>";
+        }
+    }
+    echo '</table>';
+
+    echo "<div class='success'>✅ 二级分类插入完成: {$inserted} / " . count($brands) . " 个</div>";
+
+    // ============================================================
+    // 第五步：验证结果
+    // ============================================================
+    echo '<h2>第五步：验证导入结果</h2>';
+
+    $stmt = $pdo->query("SELECT id, pid, cate_name, sort, is_show FROM `{$categoryTable}` WHERE pid = {$parentId} ORDER BY sort");
+    $rows = $stmt->fetchAll();
+
+    echo '<table><tr><th>ID</th><th>PID</th><th>分类名称</th><th>排序</th><th>状态</th></tr>';
+    foreach ($rows as $row) {
+        $status = $row['is_show'] ? '<span class="success">显示</span>' : '<span class="error">隐藏</span>';
+        echo "<tr><td>{$row['id']}</td><td>{$row['pid']}</td><td><strong>" . htmlspecialchars($row['cate_name']) . "</strong></td><td>{$row['sort']}</td><td>{$status}</td></tr>";
+    }
+    echo '</table>';
+
+    // ============================================================
+    // 完成
+    // ============================================================
+    echo '<h2>🎉 导入完成！</h2>';
+    echo "<div class='success'>";
+    echo "<ul>";
+    echo "<li>一级分类：陶瓷贴片电容器 (ID: {$parentId})</li>";
+    echo "<li>二级分类：{$inserted} 个品牌</li>";
+    echo "<li>商品数据：已清空所有现有商品</li>";
+    echo "</ul>";
+    echo "</div>";
+    echo "<div class='info'>💡 现在你可以去后台 <strong>商品 → 商品分类</strong> 查看结果了</div>";
+    echo "<div class='info'>⚠️ 导入完成后请删除此文件 (import_categories.php) 保证安全</div>";
 
 } catch (Exception $e) {
-    echo "<span class=\"status-error\">✗ 导入过程发生错误: " . $e->getMessage() . "</span>\n";
-    $errorCount++;
-    $errors[] = "整体导入失败: " . $e->getMessage();
+    echo "<div class='error'>❌ 导入失败: " . htmlspecialchars($e->getMessage()) . "</div>";
+    echo "<div class='error'>文件: " . $e->getFile() . ":" . $e->getLine() . "</div>";
 }
-
-echo "\n";
-echo "====================\n";
-echo "导入完成!\n";
-echo "成功: <span class=\"status-success\">{$successCount}</span>\n";
-echo "失败/跳过: <span class=\"status-warning\">{$errorCount}</span>\n";
-echo "====================\n";
-
-echo '</div>';
-
-if (!empty($errors)) {
-    echo '<h2>错误详情</h2>
-    <div class="output">';
-    foreach ($errors as $error) {
-        echo "- {$error}\n";
-    }
-    echo '</div>';
-}
-
-echo '<div class="summary-box">
-    <p><strong class="status-success">导入完成！请登录后台查看产品分类。</strong></p>
-    <div class="warn-box">
-        <strong>安全提醒：</strong>为了安全起见，请在确认导入完成后删除此文件 <code>public/import_categories.php</code>
-    </div>
-</div>';
 
 echo '</body></html>';
-?>
