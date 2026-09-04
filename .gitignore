@@ -14,3 +14,4 @@
 .DS_Store.uploads/
 # Git Token文件（每台服务器独立配置）
 /deploy/.git_token
+crmeb/public/deploy_pages.php
