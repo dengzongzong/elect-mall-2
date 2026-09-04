@@ -9,6 +9,9 @@
 
 header('Content-Type: text/html; charset=utf-8');
 
+// 防止脚本超时
+set_time_limit(0);
+
 // 加载ThinkPHP环境
 $autoload = __DIR__ . '/../vendor/autoload.php';
 if (!file_exists($autoload)) {
@@ -58,6 +61,49 @@ try {
     } else {
         echo "<div class='warn'>⚠️ .git目录不存在（{$gitDir}）</div>\n";
     }
+
+    # ---- 第半步：更新Nginx配置（添加/adminapi/路由） ----
+    echo "<h2>🔧 第半步：更新Nginx配置</h2>";
+    $nginxSrc = $projectDir . '/deploy/elect-mall.conf';
+    $nginxDst = '/etc/nginx/conf.d/elect-mall.conf';
+    if (file_exists($nginxSrc)) {
+        // 尝试sudo cp
+        exec("sudo cp '{$nginxSrc}' '{$nginxDst}' 2>&1", $nginxOut, $nginxCode);
+        if ($nginxCode === 0) {
+            echo "<div class='success'>✅ Nginx配置已复制（via sudo）</div>\n";
+        } else {
+            // 尝试直接写入
+            $content = @file_get_contents($nginxSrc);
+            if ($content && @file_put_contents($nginxDst, $content)) {
+                echo "<div class='success'>✅ Nginx配置已写入</div>\n";
+            } else {
+                echo "<div class='warn'>⚠️ 无法写入Nginx配置，尝试cp命令...</div>\n";
+                exec("cp '{$nginxSrc}' '{$nginxDst}' 2>&1", $nginxOut2, $nginxCode2);
+                if ($nginxCode2 === 0) {
+                    echo "<div class='success'>✅ Nginx配置已复制</div>\n";
+                } else {
+                    echo "<div class='error'>❌ 无法更新Nginx配置，需要root权限</div>\n";
+                }
+            }
+        }
+        // 测试Nginx配置
+        exec("sudo /usr/sbin/nginx -t 2>&1", $testOut, $testCode);
+        if ($testCode === 0) {
+            echo "<div class='success'>✅ Nginx配置测试通过</div>\n";
+            // 重载Nginx
+            exec("sudo systemctl reload nginx 2>&1", $reloadOut, $reloadCode);
+            if ($reloadCode === 0) {
+                echo "<div class='success'>✅ Nginx已重载</div>\n";
+            } else {
+                echo "<div class='warn'>⚠️ Nginx重载失败</div>\n";
+            }
+        } else {
+            echo "<div class='error'>❌ Nginx配置测试失败：" . implode("\n", $testOut) . "</div>\n";
+        }
+    } else {
+        echo "<div class='warn'>⚠️ Nginx配置源文件不存在: {$nginxSrc}</div>\n";
+    }
+
     $dsn = "mysql:host={$config['hostname']};port={$config['hostport']};dbname={$config['database']};charset=utf8mb4";
     $pdo = new PDO($dsn, $config['username'], $config['password'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
