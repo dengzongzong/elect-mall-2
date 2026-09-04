@@ -1,9 +1,40 @@
 <template>
   <div class="digikey-home">
-    <!-- Banner + 广告位 区域 -->
+    <!-- Banner + 商品分类 + 广告位 区域 -->
     <div class="banner-ad-section container">
       <div class="banner-ad-grid">
-        <!-- 左侧轮播图 -->
+        <!-- 左侧商品分类 -->
+        <div class="category-sidebar" @mouseleave="leave()">
+          <div
+            class="category-item acea-row row-between-wrapper"
+            :class="index === current ? 'active' : ''"
+            v-for="(item, index) in categoryList"
+            :key="index"
+            v-if="index < 10"
+            @mouseenter="enter(index)"
+          >
+            <div class="category-name">{{ item.cate_name }}</div>
+            <div class="iconfont icon-you"></div>
+          </div>
+          <!-- 鼠标悬停弹出商品分类列表弹框 -->
+          <div class="category-dropdown scale-up-hor-left" v-if="seen">
+            <div class="subcategory-grid acea-row row-top">
+              <div
+                @click="goCate(item, index)"
+                class="subcategory-item acea-row row-middle"
+                v-for="(item, index) in categoryCurrent.children"
+                :key="index"
+              >
+                <div class="subcategory-pic">
+                  <img :src="item.pic" v-if="item.pic" />
+                  <img src="~assets/images/no_sort.jpg" alt="" v-else />
+                </div>
+                <div class="subcategory-name">{{ item.cate_name }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 中间轮播图 -->
         <div class="banner-container">
           <client-only>
             <div v-swiper:mySwiper="swiperOption">
@@ -37,41 +68,6 @@
             <nuxt-link :to="item.url ? item.url : '#'">
               <img :src="item.pic" v-if="item.pic" alt="ad" />
             </nuxt-link>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 产品分类入口 -->
-    <div class="container category-section">
-      <div class="category-grid acea-row row-top" @mouseleave="leave()">
-        <div class="category-sidebar">
-          <div
-            class="category-item acea-row row-between-wrapper"
-            :class="index === current ? 'active' : ''"
-            v-for="(item, index) in categoryList"
-            :key="index"
-            v-if="index < 10"
-            @mouseenter="enter(index)"
-          >
-            <div class="category-name">{{ item.cate_name }}</div>
-            <div class="iconfont icon-you"></div>
-          </div>
-        </div>
-        <div class="category-dropdown scale-up-hor-left" v-if="seen">
-          <div class="subcategory-grid acea-row row-top">
-            <div
-              @click="goCate(item, index)"
-              class="subcategory-item acea-row row-middle"
-              v-for="(item, index) in categoryCurrent.children"
-              :key="index"
-            >
-              <div class="subcategory-pic">
-                <img :src="item.pic" v-if="item.pic" />
-                <img src="~assets/images/no_sort.jpg" alt="" v-else />
-              </div>
-              <div class="subcategory-name">{{ item.cate_name }}</div>
-            </div>
           </div>
         </div>
       </div>
@@ -605,7 +601,97 @@ export default {
   align-items: stretch;
 }
 
-/* 左侧轮播图 */
+/* 左侧商品分类栏 */
+.category-sidebar {
+  flex: 0 0 240px;
+  height: 380px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: #f8f8f8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: visible;
+  z-index: 20;
+
+  .category-item {
+    flex: 1 1 auto;
+    padding: 0 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #eaeaea;
+    transition: all 0.3s;
+    position: relative;
+
+    &.active,
+    &:hover {
+      background-color: #e93323;
+      color: #fff;
+    }
+
+    .category-name {
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    .iconfont {
+      font-size: 12px;
+    }
+  }
+
+  /* 悬停弹出的商品分类列表弹框 */
+  .category-dropdown {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    width: 500px;
+    min-height: 100%;
+    max-height: 380px;
+    overflow-y: auto;
+    padding: 16px;
+    background-color: #fff;
+    box-shadow: 4px 4px 14px rgba(0, 0, 0, 0.16);
+    border: 1px solid #f0f0f0;
+    z-index: 50;
+  }
+
+  .subcategory-grid {
+    display: flex;
+    flex-wrap: wrap;
+
+    .subcategory-item {
+      width: 25%;
+      padding: 12px;
+      cursor: pointer;
+
+      &:hover {
+        .subcategory-name {
+          color: #e93323;
+        }
+      }
+
+      .subcategory-pic {
+        width: 50px;
+        height: 50px;
+        margin-right: 12px;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 4px;
+        }
+      }
+
+      .subcategory-name {
+        font-size: 14px;
+        color: #333;
+        transition: color 0.3s;
+      }
+    }
+  }
+}
+
+/* 中间轮播图 */
 .banner-container {
   flex: 1;
   height: 380px;
@@ -651,89 +737,6 @@ export default {
         height: 100%;
         object-fit: cover;
         display: block;
-      }
-    }
-  }
-}
-
-/* 产品分类入口 */
-.category-section {
-  margin-bottom: 20px;
-
-  .category-grid {
-    background-color: #fff;
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .category-sidebar {
-    width: 240px;
-    float: left;
-    background-color: #f8f8f8;
-  }
-
-  .category-item {
-    padding: 12px 16px;
-    cursor: pointer;
-    border-bottom: 1px solid #eaeaea;
-    transition: all 0.3s;
-
-    &.active,
-    &:hover {
-      background-color: #e93323;
-      color: #fff;
-    }
-
-    .category-name {
-      font-size: 14px;
-      line-height: 20px;
-    }
-
-    .iconfont {
-      font-size: 12px;
-    }
-  }
-
-  .category-dropdown {
-    flex: 1;
-    padding: 16px;
-    background-color: #fff;
-    min-height: 300px;
-  }
-
-  .subcategory-grid {
-    display: flex;
-    flex-wrap: wrap;
-
-    .subcategory-item {
-      width: 25%;
-      padding: 12px;
-      cursor: pointer;
-
-      &:hover {
-        .subcategory-name {
-          color: #e93323;
-        }
-      }
-
-      .subcategory-pic {
-        width: 50px;
-        height: 50px;
-        margin-right: 12px;
-
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          border-radius: 4px;
-        }
-      }
-
-      .subcategory-name {
-        font-size: 14px;
-        color: #333;
-        transition: color 0.3s;
       }
     }
   }
