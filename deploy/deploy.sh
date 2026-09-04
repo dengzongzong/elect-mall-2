@@ -119,11 +119,15 @@ if [ -d "${PROJECT_DIR}/template/admin/dist" ]; then
 fi
 # 同步crmeb/public目录下的PHP工具文件（fix_all.php, web_exec.php, check_categories.php等）
 if [ -d "${PROJECT_DIR}/crmeb/public" ]; then
-    # 同步所有php文件到WEB_ROOT，使用正确的路径
-    find "${PROJECT_DIR}/crmeb/public" -maxdepth 1 -name "*.php" -exec cp {} "${WEB_ROOT}/" \; 2>/dev/null
-    # 也同步sql文件到项目根目录
-    find "${PROJECT_DIR}" -maxdepth 1 -name "*.sql" -exec cp {} "${PROJECT_DIR}/" \; 2>/dev/null
-    log "[6/8] crmeb/public PHP tools synced"
+    # 所有php文件已经在${PROJECT_DIR}/crmeb/public，不需要复制
+    # 但是需要确保权限正确
+    sudo chown -R nginx:nginx "${PROJECT_DIR}/crmeb/public" 2>/dev/null || true
+    sudo chmod 644 "${PROJECT_DIR}/crmeb/public"/*.php 2>/dev/null || true
+    log "[6/8] crmeb/public PHP permissions fixed"
+fi
+# 也同步sql文件到项目根目录
+if [ -f "${PROJECT_DIR}/import_categories.sql" ]; then
+    cp "${PROJECT_DIR}/import_categories.sql" "${PROJECT_DIR}/" 2>/dev/null
 fi
 
 # 7. 更新Nginx配置并重启服务（使用sudo提权）
