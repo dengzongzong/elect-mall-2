@@ -177,21 +177,70 @@ if [ -f "${SQL_FILE}" ]; then
     [ -z "$DB_PASS" ] && DB_PASS="root"
     [ -z "$DB_PORT" ] && DB_PORT="3306"
     
-    # 检查 mysql 是否可用
+    SQL_EXECUTED=false
+    
+    # 方法1：使用 mysql 命令行
     if command -v mysql >/dev/null 2>&1; then
-        log "[8/8] Found SQL file: ${SQL_FILE}, executing..."
-        # 执行 SQL
+        log "[8/8] Method 1: Using mysql command..."
         mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < "${SQL_FILE}" 2>&1 | tee -a "$LOG_FILE"
         if [ ${PIPESTATUS[0]} -eq 0 ]; then
-            log "[8/8] ✓ SQL executed successfully"
-            # SQL执行成功后，备份并删除SQL文件（避免重复执行）
-            mv "${SQL_FILE}" "${PROJECT_ROOT}/import_categories.sql.executed.$(date +%Y%m%d%H%M%S)" 2>/dev/null
-            log "[8/8] SQL file moved to backup"
+            log "[8/8] ✓ SQL executed successfully via mysql command"
+            SQL_EXECUTED=true
         else
-            log "[8/8] ✗ SQL execution failed (check above for errors)"
+            log "[8/8] ⚠ mysql command failed, trying PHP fallback..."
         fi
-    else
-        log "[8/8] ⚠ mysql command not found, skip auto-execution"
+    fi
+    
+    # 方法2：使用 PHP 执行 SQL（兜底方案）
+    if [ "$SQL_EXECUTED" = false ]; then
+        log "[8/8] Method 2: Using PHP PDO..."
+        php -r '
+            $sql = file_get_contents("'"${SQL_FILE}"'");
+            if ($sql === false) { echo "Cannot read SQL file\n"; exit(1); }
+            
+            // 解析SQL，按分号分割语句
+            $statements = explode(";", $sql);
+            
+            $host = "'"${DB_HOST}"'";
+            $db   = "'"${DB_NAME}"'";
+            $user = "'"${DB_USER}"'";
+            $pass = "'"${DB_PASS}"'";
+            $port = "'"${DB_PORT}"'";
+            
+            try {
+                $pdo = new PDO("mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4", $user, $pass);
+                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                
+                $count = 0;
+                foreach ($statements as $stmt) {
+                    $stmt = trim($stmt);
+                    if (empty($stmt)) continue;
+                    // 跳过 SELECT 和 SET 语句（只执行 DML/DDL）
+                    if (preg_match("/^(SELECT|SET)\s/i", $stmt)) continue;
+                    $pdo->exec($stmt);
+                    $count++;
+                    echo "  [OK] Statement #$count\n";
+                }
+                
+                echo "✓ Total $count statements executed successfully\n";
+            } catch (Exception $e) {
+                echo "✗ Error: " . $e->getMessage() . "\n";
+                exit(1);
+            }
+        ' 2>&1 | tee -a "$LOG_FILE"
+        
+        if [ ${PIPESTATUS[0]} -eq 0 ]; then
+            log "[8/8] ✓ SQL executed successfully via PHP"
+            SQL_EXECUTED=true
+        else
+            log "[8/8] ✗ SQL execution failed (both methods)"
+        fi
+    fi
+    
+    if [ "$SQL_EXECUTED" = true ]; then
+        # SQL执行成功后，备份并删除SQL文件（避免重复执行）
+        mv "${SQL_FILE}" "${PROJECT_ROOT}/import_categories.sql.executed.$(date +%Y%m%d%H%M%S)" 2>/dev/null
+        log "[8/8] SQL file moved to backup"
     fi
 else
     log "[8/8] No import_categories.sql found, skip"

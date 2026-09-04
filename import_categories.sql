@@ -1,17 +1,14 @@
 -- ============================================================
 -- 陶瓷贴片电容器分类导入 SQL
--- 功能：删除所有现有商品分类和商品数据，只保留陶瓷贴片电容器分类
+-- 功能：删除所有现有商品数据，重新插入两级分类
+-- 修复：解决子查询引用同一表的错误问题
 -- ============================================================
 
--- 设置编码
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- ============================================================
--- 第一步：删除所有商品相关数据（清空）
--- ============================================================
+-- ========== 第一步：删除所有商品相关数据 ==========
 
--- 删除所有商品（如果有商品）
 DELETE FROM `eb_store_product`;
 DELETE FROM `eb_store_product_cate`;
 DELETE FROM `eb_store_product_attr`;
@@ -28,34 +25,29 @@ DELETE FROM `eb_store_product_reply`;
 DELETE FROM `eb_store_product_virtual`;
 DELETE FROM `eb_store_visit`;
 
--- 重置自增ID
 ALTER TABLE `eb_store_product` AUTO_INCREMENT = 1;
 
--- ============================================================
--- 第二步：删除所有现有分类，只保留陶瓷贴片电容器相关分类
--- （用户要求只保留我们要导入的两级分类）
--- ============================================================
+-- ========== 第二步：删除陶瓷贴片电容器分类（使用变量避免子查询同一表错误） ==========
 
--- 先删除陶瓷贴片电容器（如果已存在）及其子分类
-DELETE FROM `eb_store_category` 
-WHERE `cate_name` = '陶瓷贴片电容器' 
-   OR `pid` IN (SELECT id FROM `eb_store_category` WHERE `cate_name` = '陶瓷贴片电容器');
+-- 先把要删除的ID存到变量
+SELECT id INTO @tmp_pid FROM `eb_store_category` WHERE `cate_name` = '陶瓷贴片电容器' AND `pid` = 0 LIMIT 1;
 
--- ============================================================
--- 第三步：插入一级分类：陶瓷贴片电容器
--- ============================================================
+-- 删除子分类
+DELETE FROM `eb_store_category` WHERE `pid` = @tmp_pid;
+
+-- 删除一级分类
+DELETE FROM `eb_store_category` WHERE `id` = @tmp_pid;
+
+-- ========== 第三步：插入一级分类：陶瓷贴片电容器 ==========
 
 INSERT INTO `eb_store_category` 
-(`id`, `pid`, `cate_name`, `sort`, `pic`, `is_show`, `add_time`) 
+(`pid`, `cate_name`, `sort`, `pic`, `is_show`, `add_time`) 
 VALUES 
-(NULL, 0, '陶瓷贴片电容器', 1, '', 1, UNIX_TIMESTAMP());
+(0, '陶瓷贴片电容器', 1, '', 1, UNIX_TIMESTAMP());
 
--- 获取最后插入的ID（供下面使用）
 SET @parent_id = LAST_INSERT_ID();
 
--- ============================================================
--- 第四步：插入二级分类（13个品牌）
--- ============================================================
+-- ========== 第四步：插入13个二级品牌分类 ==========
 
 INSERT INTO `eb_store_category` 
 (`pid`, `cate_name`, `sort`, `pic`, `is_show`, `add_time`) 
@@ -74,12 +66,8 @@ VALUES
 (@parent_id, 'VIYONG(微容)', 12, '', 1, UNIX_TIMESTAMP()),
 (@parent_id, 'SAMWHA(三和)', 13, '', 1, UNIX_TIMESTAMP());
 
--- ============================================================
--- 完成
--- ============================================================
-
 SET FOREIGN_KEY_CHECKS = 1;
 
--- 显示结果
+-- 查看结果
 SELECT '导入完成！' AS message;
 SELECT id, pid, cate_name, sort FROM eb_store_category WHERE pid = @parent_id ORDER BY sort;
