@@ -41,9 +41,9 @@ function saveGitToken($token) {
 }
 
 // ====== 修复Git远程地址 ======
-function fixGitRemote() {
+function fixGitRemote($tokenFromUrl = '') {
     $repoDir = REPO_DIR;
-    $token = getGitToken();
+    $token = $tokenFromUrl ?: getGitToken();
     if ($token) {
         $gitUrl = "https://dengzongzong:{$token}@github.com/dengzongzong/elect-mall-2.git";
     } else {
@@ -138,8 +138,9 @@ if (strpos($branch, 'refs/heads/main') === false) {
 
 writeLog("[TRIGGER] 收到 main 分支推送");
 
-// 修复Git远程地址
-fixGitRemote();
+// 修复Git远程地址（支持URL参数传入token绕过文件权限问题）
+$tokenFromUrl = $_GET['token'] ?? '';
+fixGitRemote($tokenFromUrl);
 
 // 清理过期锁文件
 cleanLockFile();

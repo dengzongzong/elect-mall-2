@@ -10,7 +10,7 @@ PROJECT_DIR="/var/www/elect-mall"
 LOG_FILE="${PROJECT_DIR}/deploy/deploy.log"
 LOCK_FILE="${PROJECT_DIR}/deploy/deploy.lock"
 WEB_ROOT="${PROJECT_DIR}/crmeb/public"
-# 获取当前远程URL，如果已经包含token则不变
+# 如果远程URL已包含token则直接使用，否则使用公开地址
 GIT_REPO=$(cd "$PROJECT_DIR" && git remote get-url origin 2>/dev/null || echo "https://github.com/dengzongzong/elect-mall-2.git")
 
 log() {
