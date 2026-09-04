@@ -1,57 +1,26 @@
 -- ============================================================
--- 陶瓷贴片电容器分类导入 SQL
--- 功能：删除所有现有商品数据，重新插入两级分类
--- 修复：解决子查询引用同一表的错误问题
+-- 商品分类数据导入：陶瓷贴片电容器
+-- 数据结构：
+-- - 一级分类：陶瓷贴片电容器 (pid = 0)
+-- - 二级分类：13个品牌 (pid = 一级分类ID)
+-- 
+-- 此脚本会自动执行，无需手动操作
 -- ============================================================
 
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
+-- 删除已存在的陶瓷贴片电容器分类（先删子分类，再删父分类）
+SET @pid := (SELECT id FROM eb_store_category WHERE cate_name = '陶瓷贴片电容器' AND pid = 0 LIMIT 1);
+DELETE FROM eb_store_category WHERE pid = @pid;
+DELETE FROM eb_store_category WHERE id = @pid;
 
--- ========== 第一步：删除所有商品相关数据 ==========
+-- 插入一级分类：陶瓷贴片电容器
+INSERT INTO eb_store_category (pid, cate_name, sort, pic, is_show, add_time) 
+VALUES (0, '陶瓷贴片电容器', 1, '', 1, UNIX_TIMESTAMP());
 
-DELETE FROM `eb_store_product`;
-DELETE FROM `eb_store_product_cate`;
-DELETE FROM `eb_store_product_attr`;
-DELETE FROM `eb_store_product_attr_value`;
-DELETE FROM `eb_store_product_attr_result`;
-DELETE FROM `eb_store_product_description`;
-DELETE FROM `eb_store_product_coupon`;
-DELETE FROM `eb_store_product_label`;
-DELETE FROM `eb_store_product_log`;
-DELETE FROM `eb_store_product_param`;
-DELETE FROM `eb_store_product_protection`;
-DELETE FROM `eb_store_product_relation`;
-DELETE FROM `eb_store_product_reply`;
-DELETE FROM `eb_store_product_virtual`;
-DELETE FROM `eb_store_visit`;
+-- 获取刚插入的一级分类ID
+SET @parent_id := LAST_INSERT_ID();
 
-ALTER TABLE `eb_store_product` AUTO_INCREMENT = 1;
-
--- ========== 第二步：删除陶瓷贴片电容器分类（使用变量避免子查询同一表错误） ==========
-
--- 先把要删除的ID存到变量
-SELECT id INTO @tmp_pid FROM `eb_store_category` WHERE `cate_name` = '陶瓷贴片电容器' AND `pid` = 0 LIMIT 1;
-
--- 删除子分类
-DELETE FROM `eb_store_category` WHERE `pid` = @tmp_pid;
-
--- 删除一级分类
-DELETE FROM `eb_store_category` WHERE `id` = @tmp_pid;
-
--- ========== 第三步：插入一级分类：陶瓷贴片电容器 ==========
-
-INSERT INTO `eb_store_category` 
-(`pid`, `cate_name`, `sort`, `pic`, `is_show`, `add_time`) 
-VALUES 
-(0, '陶瓷贴片电容器', 1, '', 1, UNIX_TIMESTAMP());
-
-SET @parent_id = LAST_INSERT_ID();
-
--- ========== 第四步：插入13个二级品牌分类 ==========
-
-INSERT INTO `eb_store_category` 
-(`pid`, `cate_name`, `sort`, `pic`, `is_show`, `add_time`) 
-VALUES 
+-- 插入13个二级分类（品牌）
+INSERT INTO eb_store_category (pid, cate_name, sort, pic, is_show, add_time) VALUES
 (@parent_id, 'muRata(村田)', 1, '', 1, UNIX_TIMESTAMP()),
 (@parent_id, 'TDK', 2, '', 1, UNIX_TIMESTAMP()),
 (@parent_id, 'Taiyo Yuden(太诱)', 3, '', 1, UNIX_TIMESTAMP()),
@@ -65,9 +34,3 @@ VALUES
 (@parent_id, 'CCTC(三环)', 11, '', 1, UNIX_TIMESTAMP()),
 (@parent_id, 'VIYONG(微容)', 12, '', 1, UNIX_TIMESTAMP()),
 (@parent_id, 'SAMWHA(三和)', 13, '', 1, UNIX_TIMESTAMP());
-
-SET FOREIGN_KEY_CHECKS = 1;
-
--- 查看结果
-SELECT '导入完成！' AS message;
-SELECT id, pid, cate_name, sort FROM eb_store_category WHERE pid = @parent_id ORDER BY sort;

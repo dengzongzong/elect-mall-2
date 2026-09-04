@@ -211,8 +211,8 @@ if [ -f "${SQL_FILE}" ]; then
                 foreach ($statements as $stmt) {
                     $stmt = trim($stmt);
                     if (empty($stmt)) continue;
-                    // 跳过 SELECT 和 SET 语句（只执行 DML/DDL）
-                    if (preg_match("/^(SELECT|SET)\s/i", $stmt)) continue;
+                    // 跳过 SELECT 语句（只执行 DML/DDL/SET）
+                    if (preg_match("/^(SELECT)\s/i", $stmt)) continue;
                     $pdo->exec($stmt);
                     $count++;
                     echo "  [OK] Statement #$count\n";

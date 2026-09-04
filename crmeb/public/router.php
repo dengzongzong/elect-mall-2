@@ -1,16 +1,27 @@
 <?php
-// +----------------------------------------------------------------------
-// | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
-// +----------------------------------------------------------------------
-// | Copyright (c) 2016~2026 https://www.crmeb.com All rights reserved.
-// +----------------------------------------------------------------------
-// | Licensed CRMEB并不是自由软件，未经许可不能去掉CRMEB相关版权
-// +----------------------------------------------------------------------
-// | Author: CRMEB Team <admin@crmeb.com>
-// +----------------------------------------------------------------------
+$uri = $_SERVER['REQUEST_URI'];
+$path = parse_url($uri, PHP_URL_PATH);
 
-if (is_file($_SERVER["DOCUMENT_ROOT"] . $_SERVER["SCRIPT_NAME"])) {
+// 如果请求的是/import_categories.php，直接返回
+if ($path === '/import_categories.php') {
     return false;
-} else {
-    require __DIR__ . "/index.php";
 }
+
+// 静态文件
+if (preg_match('/\.(?:png|jpg|jpeg|gif|js|css|ico|svg|woff|woff2|ttf|eot)$/', $path)) {
+    return false;
+}
+
+// /admin/ 开头的路由
+if (strpos($path, '/admin/') === 0) {
+    $file = __DIR__ . '/admin' . ($path === '/admin/' ? '/index.html' : $path);
+    if (file_exists($file)) {
+        return false;
+    }
+    $_SERVER['REQUEST_URI'] = '/admin/index.html';
+    return false;
+}
+
+// API路由 -> 转发到index.php
+$_SERVER['REQUEST_URI'] = '/index.php?s=' . $uri . '&' . $_SERVER['QUERY_STRING'];
+return false;
