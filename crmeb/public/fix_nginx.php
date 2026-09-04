@@ -1,119 +1,148 @@
 <?php
 /**
- * Nginx 配置修复 + .git权限修复
- * 功能：修复Nginx配置以支持/adminapi/路由，然后重载
- * 安全提醒：执行完成后请立即删除此文件！
+ * 直接在服务器上更新Nginx配置 - 修复.html路由404问题
+ * 使用方法: 访问 http://134.175.246.242/crmeb/public/fix_nginx.php
  */
-header('Content-Type: text/html; charset=utf-8');
-?>
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Nginx 配置修复</title>
-<style>
-body{font-family:'Microsoft YaHei',sans-serif;max-width:800px;margin:30px auto;padding:20px;line-height:1.8}
-h1{color:#2c3e50;border-bottom:3px solid #e74c3c;padding-bottom:10px}
-.output{background:#1e1e1e;color:#00ff00;border:1px solid #333;padding:15px;margin:15px 0;border-radius:4px;white-space:pre-wrap;word-break:break-all;font-family:monospace;font-size:14px}
-.success{color:#27ae60}
-.error{color:#e74c3c}
-.info{background:#e8f4f8;padding:10px;border-radius:4px;margin:10px 0}
-.btn{background:#e74c3c;color:white;border:none;padding:12px 24px;font-size:16px;cursor:pointer;border-radius:4px}
-.btn:hover{background:#c0392b}
-</style>
-</head>
-<body>
-<h1>🔧 Nginx 配置一键修复</h1>
+header('Content-Type: text/plain; charset=utf-8');
 
-<div class="info">
-<strong>修复内容：</strong><br>
-1. 修复 .git 目录权限（sudo）<br>
-2. 复制 Nginx 配置并重载（sudo）<br>
-3. 验证 /adminapi/ 路由是否生效<br>
-</div>
+echo "=== 开始更新Nginx配置 ===\n\n";
 
-<?php if (!isset($_POST['run'])): ?>
-<form method="post">
-<button type="submit" name="run" value="1" class="btn" onclick="this.disabled=true;this.form.submit();">开始修复</button>
-</form>
-<?php else:
+// 完整的新配置
+$newConfig = <<<'EOT'
+server {
+    listen 80 default_server;
+    server_name _;
+    root /var/www/elect-mall/crmeb/public;
+    client_max_body_size 100m;
+    charset utf-8;
 
-echo "<div class='output'>\n";
-echo "=== 开始修复 ===\n\n";
+    # 修复工具（临时）
+    location = /fix_all.php {
+        fastcgi_pass 127.0.0.1:9000;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root/fix_all.php;
+    }
 
-$projectDir = '/var/www/elect-mall';
+    # 管理后台API 路由
+    location /adminapi/ {
+        try_files $uri /index.php?s=$uri&$args;
+    }
 
-// 1. 修复 .git 目录权限（需要sudo）
-echo "[1/4] 修复 .git 目录权限...\n";
-ob_flush();
-flush();
-exec("sudo chmod -R 777 {$projectDir}/.git 2>&1", $out);
-echo implode("\n", $out) . "\n";
-echo "✓ .git 权限修复完成\n\n";
+    # 旧版API 路由
+    location /api/ {
+        try_files $uri /index.php?s=$uri&$args;
+    }
 
-// 2. 复制Nginx配置
-echo "[2/4] 更新Nginx配置...\n";
-ob_flush();
-flush();
-$src = "{$projectDir}/deploy/elect-mall.conf";
+    # PC 前端静态资源（/home/xxx.js 等）
+    location /home/ {
+        alias /var/www/elect-mall/crmeb/public/home/;
+        try_files $uri $uri/ /home/index.html;
+        expires 30d;
+        add_header Cache-Control public;
+    }
+
+    # 根目录静态文件（favicon.ico 等）
+    location = /favicon.ico {
+        root /var/www/elect-mall/crmeb/public;
+        expires 30d;
+    }
+    location = /robots.txt {
+        root /var/www/elect-mall/crmeb/public;
+    }
+
+    # PC 前端 - 路由处理
+    # 注意：不要用 try_files $uri $uri/，因为 public/index.html（旧uni-app页面）会优先匹配
+    location / {
+        # 处理 .html 路由（如 /brand_list.html → /home/brand_list/index.html）
+        rewrite ^/(.+)\.html$ /home/$1/index.html last;
+        # 其他所有请求都走 Nuxt.js SPA 入口
+        rewrite ^ /home/index.html break;
+    }
+
+    # 管理后台
+    location /admin/ {
+        index index.html;
+        try_files $uri $uri/ /admin/index.html;
+    }
+
+    # H5 移动端
+    location /mobile/ {
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Webhook 部署
+    location = /deploy/webhook.php {
+        root /var/www/elect-mall;
+        fastcgi_pass 127.0.0.1:9000;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root/deploy/webhook.php;
+    }
+
+    # PHP 处理
+    location ~ \.php$ {
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control public;
+    }
+
+    # 禁止访问
+    location ~ /\. {
+        deny all;
+    }
+    location ~ /(runtime|vendor)/ {
+        deny all;
+    }
+}
+EOT;
+
 $dst = '/etc/nginx/conf.d/elect-mall.conf';
-if (file_exists($src)) {
-    exec("sudo cp '{$src}' '{$dst}' 2>&1", $out, $code);
-    echo implode("\n", $out) . "\n";
-    if ($code === 0) {
-        echo "✓ 已复制配置到 {$dst}\n";
-    } else {
-        // 尝试直接写入
-        $content = file_get_contents($src);
-        if (file_put_contents($dst, $content)) {
-            echo "✓ 已直接写入 {$dst}\n";
-        } else {
-            echo "✗ 无法写入 {$dst}，请手动执行：sudo cp {$src} {$dst}\n";
-        }
-    }
+
+echo "正在写入配置到: {$dst}\n";
+$result = file_put_contents($dst, $newConfig);
+
+if ($result !== false) {
+    echo "✓ 写入成功，大小: {$result} 字节\n\n";
 } else {
-    echo "✗ 源文件不存在: {$src}\n";
-}
-echo "\n";
-
-// 3. 测试并重载Nginx
-echo "[3/4] 测试并重载Nginx...\n";
-ob_flush();
-flush();
-exec('sudo /usr/sbin/nginx -t 2>&1', $out);
-echo implode("\n", $out) . "\n";
-exec('sudo systemctl reload nginx 2>&1', $out);
-echo implode("\n", $out) . "\n";
-echo "✓ Nginx 重载完成\n\n";
-
-// 4. 验证
-echo "[4/4] 验证 /adminapi/ 路由...\n";
-ob_flush();
-flush();
-$ch = curl_init('http://localhost/adminapi/login');
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-$resp = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($httpCode === 200) {
-    echo "✓ /adminapi/ 路由正常 (HTTP {$httpCode})\n";
-    if (strpos($resp, '<!doctype html') !== false) {
-        echo "⚠️ 注意：返回的是HTML页面（非API），请检查路由配置\n";
-    } else {
-        echo "✓ 返回了API响应内容\n";
-    }
-} else {
-    echo "✗ /adminapi/ 路由异常 (HTTP {$httpCode})\n";
+    echo "✗ 直接写入失败，尝试使用sudo...\n\n";
 }
 
-echo "\n=== 完成 ===\n";
-echo "</div>";
+// 测试配置
+echo "[1/2] 测试Nginx配置...\n";
+ob_flush();
+flush();
+exec('sudo nginx -t 2>&1', $output, $code);
+echo implode("\n", $output) . "\n";
 
-echo '<div class="success">✅ 修复完成！</div>';
-echo '<div class="info">👉 <a href="/adminapi/login" target="_blank">点击测试 /adminapi/login</a></div>';
+if ($code === 0) {
+    echo "✓ 配置测试通过\n\n";
+} else {
+    echo "✗ 配置测试失败\n\n";
+}
 
-endif; ?>
-</body>
-</html>
+// 重载Nginx
+echo "[2/2] 重载Nginx...\n";
+ob_flush();
+flush();
+exec('sudo systemctl reload nginx 2>&1', $output, $code);
+echo implode("\n", $output) . "\n";
+
+if ($code === 0) {
+    echo "✓ Nginx重载成功\n\n";
+} else {
+    echo "✗ Nginx重载失败\n\n";
+}
+
+echo "=== 完成 ===\n";
+echo "现在请测试访问以下三个页面:\n";
+echo "  http://134.175.246.242/brand_list.html\n";
+echo "  http://134.175.246.242/bom_copy.html\n";
+echo "  http://134.175.246.242/authorized_dealer.html\n";
+?>
