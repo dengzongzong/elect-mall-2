@@ -152,9 +152,9 @@ if (is_dir($gitDir)) {
     writeLog("[FIX] sudo chmod .git: " . ($fixCode === 0 ? 'OK' : 'FAILED'));
 }
 
-// 异步执行部署脚本
+// 异步执行部署脚本（使用sudo，因为nginx用户无法写入deploy.log）
 $logFile = LOG_FILE;
-$cmd = "nohup bash " . escapeshellarg(DEPLOY_SCRIPT) . " >> {$logFile} 2>&1 &";
+$cmd = "sudo nohup bash " . escapeshellarg(DEPLOY_SCRIPT) . " >> {$logFile} 2>&1 &";
 exec($cmd);
 
 writeLog("[TRIGGER] 部署脚本已启动");
