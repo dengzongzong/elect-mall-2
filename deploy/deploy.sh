@@ -80,30 +80,34 @@ if [ -f "${PROJECT_DIR}/crmeb/composer.json" ]; then
     log "[3/8] Done"
 fi
 
-# 4. 构建 PC 前端（如果node_modules存在）
+# 4. 构建 PC 前端（自动安装依赖）
 log "[4/8] Build PC (Nuxt)..."
 if [ -d "${PROJECT_DIR}/template/pc" ]; then
     cd "${PROJECT_DIR}/template/pc"
-    if [ -d node_modules ]; then
-        log "[4/8] node_modules found, skipping npm install"
-        npm run generate 2>&1 | tee -a "$LOG_FILE"
-        log "[4/8] Done"
+    if [ ! -d node_modules ]; then
+        log "[4/8] Installing npm dependencies..."
+        npm install --legacy-peer-deps 2>&1 | tee -a "$LOG_FILE"
+        log "[4/8] npm install done"
     else
-        log "[4/8] node_modules not found, skip PC build"
+        log "[4/8] node_modules found, skipping npm install"
     fi
+    npm run generate 2>&1 | tee -a "$LOG_FILE"
+    log "[4/8] Build done"
 fi
 
-# 5. 构建管理后台前端（如果node_modules存在）
+# 5. 构建管理后台前端（自动安装依赖）
 log "[5/8] Build admin..."
 if [ -d "${PROJECT_DIR}/template/admin" ]; then
     cd "${PROJECT_DIR}/template/admin"
-    if [ -d node_modules ]; then
-        log "[5/8] node_modules found, skipping npm install"
-        npm run build 2>&1 | tee -a "$LOG_FILE"
-        log "[5/8] Done"
+    if [ ! -d node_modules ]; then
+        log "[5/8] Installing npm dependencies..."
+        npm install --legacy-peer-deps 2>&1 | tee -a "$LOG_FILE"
+        log "[5/8] npm install done"
     else
-        log "[5/8] node_modules not found, skip admin build"
+        log "[5/8] node_modules found, skipping npm install"
     fi
+    npm run build 2>&1 | tee -a "$LOG_FILE"
+    log "[5/8] Build done"
 fi
 
 # 6. 同步前端文件到 Web 目录
