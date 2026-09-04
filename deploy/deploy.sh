@@ -107,16 +107,12 @@ if [ -d "${PROJECT_DIR}/template/admin/dist" ]; then
     cp -rf "${PROJECT_DIR}/template/admin/dist/"* "${WEB_ROOT}/admin/" 2>/dev/null
     log "[6/8] Admin synced to ${WEB_ROOT}/admin/"
 fi
-# 同步crmeb/public目录下的PHP工具文件（fix_all.php, web_exec.php等）
+# 同步crmeb/public目录下的PHP工具文件（fix_all.php, web_exec.php, check_categories.php等）
 if [ -d "${PROJECT_DIR}/crmeb/public" ]; then
-    cd "${PROJECT_DIR}/crmeb/public"
-    # 只同步php文件，避免覆盖已有的前端文件
-    for php_file in *.php; do
-        if [ -f "$php_file" ]; then
-            cp "$php_file" "${WEB_ROOT}/" 2>/dev/null
-        fi
-    done
-    unset php_file
+    # 同步所有php文件到WEB_ROOT，使用正确的路径
+    find "${PROJECT_DIR}/crmeb/public" -maxdepth 1 -name "*.php" -exec cp {} "${WEB_ROOT}/" \; 2>/dev/null
+    # 也同步sql文件到项目根目录
+    find "${PROJECT_DIR}" -maxdepth 1 -name "*.sql" -exec cp {} "${PROJECT_DIR}/" \; 2>/dev/null
     log "[6/8] crmeb/public PHP tools synced"
 fi
 

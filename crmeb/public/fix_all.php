@@ -497,7 +497,130 @@ try {
     }
     
     echo "<hr>";
-    echo "<div class='summary'>🎉 所有修复操作已完成！</div>\n";
+    echo "<div class='summary'>🎉 编码修复操作已完成！</div>\n";
+    
+    // ============================================================
+    // 商品分类导入：陶瓷贴片电容器
+    // ============================================================
+    echo "<h2>🏷️ 商品分类导入：陶瓷贴片电容器</h2>";
+    
+    $categoryTable = $prefix . 'store_category';
+    $productTable = $prefix . 'store_product';
+    
+    // 删除所有商品数据
+    try {
+        echo "<div class='info'>📋 清空所有商品数据...</div>";
+        $productTables = [
+            $prefix . 'store_product',
+            $prefix . 'store_product_cate',
+            $prefix . 'store_product_attr',
+            $prefix . 'store_product_attr_value',
+            $prefix . 'store_product_attr_result',
+            $prefix . 'store_product_description',
+            $prefix . 'store_product_coupon',
+            $prefix . 'store_product_label',
+            $prefix . 'store_product_log',
+            $prefix . 'store_product_param',
+            $prefix . 'store_product_protection',
+            $prefix . 'store_product_relation',
+            $prefix . 'store_product_reply',
+            $prefix . 'store_product_virtual',
+            $prefix . 'store_visit',
+        ];
+        
+        $deletedCount = 0;
+        foreach ($productTables as $pt) {
+            try {
+                $count = $pdo->exec("DELETE FROM `{$pt}`");
+                $deletedCount += ($count === false ? 0 : $count);
+            } catch (Exception $e) {
+                // 表不存在或其它错误忽略
+            }
+        }
+        echo "<div class='success'>✅ 已清空 {$deletedCount} 条商品相关数据</div>";
+    } catch (Exception $e) {
+        echo "<div class='warn'>⚠️ 清空商品数据出错: " . $e->getMessage() . "</div>";
+    }
+    
+    // 删除现有陶瓷贴片电容器分类
+    try {
+        echo "<div class='info'>📋 检查并删除已存在的陶瓷贴片电容器分类...</div>";
+        // 找到父分类ID
+        $stmt = $pdo->prepare("SELECT id FROM `{$categoryTable}` WHERE cate_name = ? AND pid = 0");
+        $stmt->execute(['陶瓷贴片电容器']);
+        $parentId = $stmt->fetchColumn();
+        
+        if ($parentId) {
+            // 删除子分类
+            $stmt = $pdo->prepare("DELETE FROM `{$categoryTable}` WHERE pid = ?");
+            $stmt->execute([$parentId]);
+            $childrenDeleted = $stmt->rowCount();
+            // 删除父分类
+            $stmt = $pdo->prepare("DELETE FROM `{$categoryTable}` WHERE id = ?");
+            $stmt->execute([$parentId]);
+            echo "<div class='success'>✅ 删除了已存在的分类 ({$childrenDeleted} 个子分类)</div>";
+        } else {
+            echo "<div class='info'>ℹ️ 未找到已存在的陶瓷贴片电容器分类</div>";
+        }
+    } catch (Exception $e) {
+        echo "<div class='warn'>⚠️ 删除旧分类出错: " . $e->getMessage() . "</div>";
+    }
+    
+    // 插入一级分类
+    try {
+        echo "<div class='info'>📋 插入一级分类：陶瓷贴片电容器</div>";
+        $stmt = $pdo->prepare("INSERT INTO `{$categoryTable}` (pid, cate_name, sort, pic, is_show, add_time) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([0, '陶瓷贴片电容器', 1, '', 1, time()]);
+        $parentId = $pdo->lastInsertId();
+        echo "<div class='success'>✅ 一级分类已插入，ID: {$parentId}</div>";
+        
+        // 插入13个二级品牌分类
+        echo "<div class='info'>📋 插入二级分类（13个品牌）...</div>";
+        $brands = [
+            1 => 'muRata(村田)',
+            2 => 'TDK',
+            3 => 'Taiyo Yuden(太诱)',
+            4 => 'Kyocera(京瓷)',
+            5 => 'Walsin(华科)',
+            6 => 'SAMSUNG(三星)',
+            7 => 'Holy Stone(禾伸堂)',
+            8 => 'PSA(信昌)',
+            9 => 'Yageo(国巨)',
+            10 => 'FH(风华)',
+            11 => 'CCTC(三环)',
+            12 => 'VIYONG(微容)',
+            13 => 'SAMWHA(三和)',
+        ];
+        
+        $insertedCount = 0;
+        foreach ($brands as $sort => $brand) {
+            $stmt = $pdo->prepare("INSERT INTO `{$categoryTable}` (pid, cate_name, sort, pic, is_show, add_time) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$parentId, $brand, $sort, '', 1, time()]);
+            if ($stmt->rowCount() > 0) {
+                $insertedCount++;
+            }
+        }
+        echo "<div class='success'>✅ 二级分类插入完成：{$insertedCount} / " . count($brands) . " 个</div>";
+        
+        // 显示结果
+        echo "<h3>导入结果：</h3>";
+        echo "<table><tr><th>ID</th><th>PID</th><th>分类名称</th><th>排序</th><th>状态</th></tr>";
+        $stmt = $pdo->query("SELECT id, pid, cate_name, sort, is_show FROM `{$categoryTable}` WHERE pid = {$parentId} ORDER BY sort");
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $status = $row['is_show'] ? '显示' : '隐藏';
+            echo "<tr><td>{$row['id']}</td><td>{$row['pid']}</td><td><strong>" . htmlspecialchars($row['cate_name']) . "</strong></td><td>{$row['sort']}</td><td>{$status}</td></tr>";
+        }
+        echo "</table>";
+        echo "<div class='success'>🎉 商品分类导入完成！</div>";
+        echo "<div class='info'>一级分类：陶瓷贴片电容器（ID: {$parentId}）</div>";
+        echo "<div class='info'>二级分类：{$insertedCount} 个品牌</div>";
+        
+    } catch (Exception $e) {
+        echo "<div class='error'>❌ 导入分类出错: " . htmlspecialchars($e->getMessage()) . "</div>\n";
+    }
+    
+    echo "<hr>";
+    echo "<div class='summary'>🎉 所有操作已完成！</div>\n";
     echo "<div class='info'>💡 如果菜单仍然显示乱码，请尝试清除浏览器缓存或按 Ctrl+F5 强制刷新</div>\n";
     echo "<div class='warn'>⚠️ 请立即删除此文件（fix_all.php），防止被他人利用！</div>\n";
     
