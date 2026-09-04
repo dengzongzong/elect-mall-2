@@ -85,6 +85,64 @@ function verifySignature($payload, $signatureHeader) {
 // ====== 主流程 ======
 $action = $_GET['action'] ?? '';
 
+// 特殊模式：查看部署日志（无需签名验证）
+if ($action === 'logs') {
+    echo "<pre style='background:#111;color:#0f0;padding:15px;font-size:13px'>";
+    if (file_exists(LOG_FILE)) {
+        echo "=== 部署日志末尾 50 行 ===\n\n";
+        $lines = file(LOG_FILE, FILE_IGNORE_NEW_LINES);
+        if ($lines) {
+            echo implode("\n", array_slice($lines, -50)) . "\n";
+        }
+    } else {
+        echo "日志文件不存在: " . LOG_FILE . "\n";
+    }
+    echo "\n\n=== Git HEAD ===\n";
+    exec("cd " . escapeshellarg(REPO_DIR) . " && git log -1 --oneline 2>&1", $out);
+    echo implode("\n", $out) . "\n";
+    echo "\n=== Git 工作区状态 ===\n";
+    exec("cd " . escapeshellarg(REPO_DIR) . " && git status -s 2>&1", $out);
+    echo implode("\n", $out) . "\n";
+    echo "</pre>";
+    exit;
+}
+
+// 特殊模式：文件检查（无需签名验证）
+if ($action === 'check') {
+    echo "<pre style='background:#111;color:#0f0;padding:15px;font-size:13px'>";
+    echo "=== 关键文件检查 ===\n\n";
+    $checkFiles = [
+        REPO_DIR . '/crmeb/public/check_build.php',
+        REPO_DIR . '/crmeb/public/deploy_status.php',
+        REPO_DIR . '/crmeb/public/web_exec.php',
+        REPO_DIR . '/crmeb/public/fix_nginx.php',
+        REPO_DIR . '/template/pc/pages/brand_list.vue',
+        REPO_DIR . '/template/pc/pages/bom_copy.vue',
+        REPO_DIR . '/template/pc/pages/authorized_dealer.vue',
+        REPO_DIR . '/crmeb/public/home/index.html',
+        REPO_DIR . '/crmeb/public/home/brand_list/index.html',
+        REPO_DIR . '/crmeb/public/home/bom_copy/index.html',
+        REPO_DIR . '/crmeb/public/home/authorized_dealer/index.html',
+    ];
+    foreach ($checkFiles as $f) {
+        echo (file_exists($f) ? "✓ " : "✗ ") . $f . (file_exists($f) ? " (" . filesize($f) . " bytes)" : "") . "\n";
+    }
+    echo "\n=== 构建输出目录 ===\n";
+    $distDir = REPO_DIR . '/crmeb/public/home';
+    if (is_dir($distDir)) {
+        echo "✓ $distDir 存在\n";
+        $items = glob("$distDir/*");
+        echo "文件/目录数: " . count($items) . "\n";
+        foreach ($items as $item) {
+            echo "  " . basename($item) . (is_dir($item) ? "/" : " (" . filesize($item) . " bytes)") . "\n";
+        }
+    } else {
+        echo "✗ $distDir 不存在\n";
+    }
+    echo "</pre>";
+    exit;
+}
+
 // 特殊模式：设置Token（通过URL参数一次性传入）
 if ($action === 'set_token') {
     $token = $_GET['token'] ?? '';
