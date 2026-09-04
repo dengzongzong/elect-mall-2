@@ -58,6 +58,15 @@ log "[1/8] Set git remote..."
 cd "$PROJECT_DIR"
 # 使用 git remote show 获取远程URL（兼容旧版git）
 CURRENT_REMOTE=$(git remote show origin 2>/dev/null | grep "Fetch URL" | awk '{print $3}')
+# 检查当前远程URL是否已包含token
+if echo "$CURRENT_REMOTE" | grep -q "dengzongzong:github_pat"; then
+    # 从远程URL中提取token并保存到文件
+    EXTRACTED_TOKEN=$(echo "$CURRENT_REMOTE" | sed 's/.*dengzongzong://' | sed 's/@.*//')
+    echo "$EXTRACTED_TOKEN" > "$GIT_TOKEN_FILE" 2>/dev/null || echo "$EXTRACTED_TOKEN" | sudo tee "$GIT_TOKEN_FILE" > /dev/null 2>&1
+    log "[1/8] Token extracted from remote URL and saved to file"
+    GIT_TOKEN="$EXTRACTED_TOKEN"
+    GIT_REPO="$CURRENT_REMOTE"
+fi
 if [ "$CURRENT_REMOTE" != "$GIT_REPO" ]; then
     git remote set-url origin "$GIT_REPO"
     log "[1/8] Updated remote URL"

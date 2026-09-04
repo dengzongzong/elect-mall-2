@@ -37,7 +37,20 @@ function saveGitToken($token) {
     if (empty($token)) return false;
     $dir = dirname(TOKEN_FILE);
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
-    return file_put_contents(TOKEN_FILE, $token) !== false;
+    // 先尝试直接写入
+    if (file_put_contents(TOKEN_FILE, $token) !== false) {
+        return true;
+    }
+    // 如果直接写入失败，使用sudo写入（解决web用户权限不足的问题）
+    $escapedToken = escapeshellarg($token);
+    $escapedFile = escapeshellarg(TOKEN_FILE);
+    exec("sudo bash -c 'echo {$escapedToken} > {$escapedFile}' 2>&1", $out, $code);
+    if ($code === 0 && file_exists(TOKEN_FILE) && trim(file_get_contents(TOKEN_FILE)) === $token) {
+        return true;
+    }
+    // 再尝试使用sudo tee
+    exec("echo {$escapedToken} | sudo tee {$escapedFile} > /dev/null 2>&1", $out, $code);
+    return $code === 0 && file_exists(TOKEN_FILE);
 }
 
 // ====== 修复Git远程地址 ======
