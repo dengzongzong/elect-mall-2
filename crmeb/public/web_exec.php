@@ -3,6 +3,49 @@
  * 网页端执行工具 - 一次性修复工具
  * 安全提醒：执行完成后请立即删除此文件！
  */
+if (isset($_GET['action']) && $_GET['action'] === 'check') {
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "=== 系统诊断 ===\n\n";
+    echo "--- whoami ---\n" . trim(shell_exec('whoami 2>/dev/null') ?: 'N/A') . "\n\n";
+    echo "--- id ---\n" . trim(shell_exec('id 2>/dev/null') ?: 'N/A') . "\n\n";
+    echo "--- sudo -n whoami ---\n" . trim(shell_exec('sudo -n whoami 2>&1') ?: 'N/A') . "\n\n";
+    echo "--- sudo -l (head) ---\n";
+    $sudoL = shell_exec('sudo -l 2>&1');
+    echo $sudoL ? substr($sudoL, 0, 1000) : 'N/A';
+    echo "\n\n";
+    echo "--- nginx master ---\n" . trim(shell_exec('ps aux | grep "nginx: master" | grep -v grep 2>/dev/null') ?: 'N/A') . "\n\n";
+    echo "--- php-fpm master ---\n" . trim(shell_exec('ps aux | grep "php-fpm.*master" | grep -v grep 2>/dev/null') ?: 'N/A') . "\n\n";
+    echo "--- .git owner ---\n" . trim(shell_exec('ls -la /var/www/elect-mall/.git 2>/dev/null') ?: 'N/A') . "\n\n";
+    echo "--- elect-mall.conf (server) ---\n";
+    $f = '/etc/nginx/conf.d/elect-mall.conf';
+    if (file_exists($f)) {
+        $c = file_get_contents($f);
+        echo strpos($c, '/adminapi/') !== false ? "✓ /adminapi/ exists\n" : "✗ /adminapi/ NOT found\n";
+        echo substr($c, 0, 500) . "\n";
+    } else {
+        echo "✗ File not found\n";
+    }
+    echo "\n--- repo elect-mall.conf ---\n";
+    $src = '/var/www/elect-mall/deploy/elect-mall.conf';
+    if (file_exists($src)) {
+        $c = file_get_contents($src);
+        echo strpos($c, '/adminapi/') !== false ? "✓ /adminapi/ exists\n" : "✗ /adminapi/ NOT found\n";
+    } else {
+        echo "✗ File not found\n";
+    }
+    echo "\n--- Try writing nginx config ---\n";
+    $src = '/var/www/elect-mall/deploy/elect-mall.conf';
+    $dst = '/etc/nginx/conf.d/elect-mall.conf';
+    if (file_exists($src)) {
+        $content = file_get_contents($src);
+        $written = @file_put_contents($dst, $content);
+        echo $written !== false ? "✓ WRITE SUCCESS!\n" : "✗ Write failed\n";
+        // Try with sudo
+        exec('sudo cp ' . escapeshellarg($src) . ' ' . escapeshellarg($dst) . ' 2>&1', $out, $code);
+        echo "sudo cp: code=$code, output=" . implode("\n", $out) . "\n";
+    }
+    exit;
+}
 header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html>
