@@ -107,6 +107,73 @@ if ($action === 'logs') {
     exit;
 }
 
+// 特殊模式：仅拉取代码+构建（无需签名验证，通过URL参数传入token）
+if ($action === 'pull_and_build') {
+    $tokenFromUrl = $_GET['token'] ?? '';
+    if (!empty($tokenFromUrl)) {
+        saveGitToken($tokenFromUrl);
+        writeLog("[PULL] Token saved from URL parameter");
+    }
+    // 修复远程地址
+    fixGitRemote($tokenFromUrl);
+    // 修复.git权限
+    $gitDir = REPO_DIR . '/.git';
+    if (is_dir($gitDir)) {
+        exec("sudo chmod -R 777 " . escapeshellarg($gitDir) . " 2>&1", $fixOut, $fixCode);
+    }
+    // 定义输出缓冲区
+    $output = "";
+    // 拉取代码
+    $output .= "=== Git pull ===\n";
+    chdir(REPO_DIR);
+    exec("git stash 2>/dev/null", $out);
+    exec("git fetch origin main 2>&1", $out);
+    $output .= implode("\n", $out) . "\n";
+    exec("git reset --hard origin/main 2>&1", $out);
+    $output .= implode("\n", $out) . "\n";
+    exec("git log -1 --oneline 2>&1", $out);
+    $output .= "HEAD: " . implode("\n", $out) . "\n\n";
+    // 构建PC前端
+    $pcDir = REPO_DIR . '/template/pc';
+    if (is_dir($pcDir)) {
+        $output .= "=== npm install ===\n";
+        chdir($pcDir);
+        exec("npm install --legacy-peer-deps 2>&1", $out);
+        $output .= implode("\n", $out) . "\n\n";
+        $output .= "=== npm run generate ===\n";
+        exec("npm run generate 2>&1", $out);
+        $output .= implode("\n", $out) . "\n\n";
+    }
+    // 同步文件
+    $webRoot = REPO_DIR . '/crmeb/public/home';
+    $distDir = REPO_DIR . '/template/pc/dist';
+    if (is_dir($distDir) && is_dir($webRoot)) {
+        $output .= "=== Sync files ===\n";
+        exec("cp -rf " . $distDir . "/* " . $webRoot . "/ 2>&1", $out);
+        $output .= "Files synced\n";
+    }
+    // 更新Nginx
+    $nginxSrc = REPO_DIR . '/deploy/elect-mall.conf';
+    $nginxDst = '/etc/nginx/conf.d/elect-mall.conf';
+    if (file_exists($nginxSrc)) {
+        exec("sudo cp " . escapeshellarg($nginxSrc) . " " . escapeshellarg($nginxDst) . " 2>&1", $out);
+        $output .= "Nginx config: " . implode("\n", $out) . "\n";
+        exec("sudo /usr/sbin/nginx -t 2>&1", $out);
+        $output .= "Nginx test: " . implode("\n", $out) . "\n";
+        exec("sudo systemctl reload nginx 2>&1", $out);
+        $output .= "Nginx reload: " . implode("\n", $out) . "\n";
+    }
+    // 检查新页面
+    $output .= "\n=== Check new pages ===\n";
+    $newPages = ['brand_list', 'bom_copy', 'authorized_dealer'];
+    foreach ($newPages as $page) {
+        $f = $webRoot . '/' . $page . '/index.html';
+        $output .= (file_exists($f) ? "✓ " : "✗ ") . $page . "/index.html\n";
+    }
+    echo "<pre style='background:#111;color:#0f0;padding:15px;font-size:13px'>" . htmlspecialchars($output) . "</pre>";
+    exit;
+}
+
 // 特殊模式：文件检查（无需签名验证）
 if ($action === 'check') {
     echo "<pre style='background:#111;color:#0f0;padding:15px;font-size:13px'>";
