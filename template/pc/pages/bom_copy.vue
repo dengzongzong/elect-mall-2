@@ -1,105 +1,86 @@
 <template>
   <div class="bom-page">
     <div class="container">
-      <!-- Hero 区域 -->
-      <div class="bom-hero">
-        <h1 class="bom-title">智能BOM 您的一站式配单平台</h1>
-        <div class="bom-features">
-          <div class="feature-item">
-            <span class="feature-icon">&#x1f4a1;</span>
-            <span class="feature-text">智能物料推荐</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">&#x1f4e6;</span>
-            <span class="feature-text">海量现货库存</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">&#x1f4ca;</span>
-            <span class="feature-text">快速统计成本</span>
-          </div>
+      <!-- 页面标题 -->
+      <div class="page-header">
+        <h1 class="page-title">粘贴物料清单文本</h1>
+        <p class="page-desc">快速导入BOM，智能识别型号和数量</p>
+      </div>
+
+      <!-- 示例说明 -->
+      <div class="info-box">
+        <p><strong>示例</strong> 型号和数量间用空格隔开，多个型号用回车隔开</p>
+        <pre class="example">AC0201FR-0710KL 2500
+MR04X1000FTL 2000
+EEFSX0D471E4 3000</pre>
+        <p class="note">若需要导入Excel格式的BOM单请到唯样商城PC端操作。</p>
+      </div>
+
+      <!-- 输入区域 -->
+      <div class="input-section">
+        <label class="input-label">粘贴你的BOM清单：</label>
+        <textarea
+          v-model="bomText"
+          placeholder="在这里粘贴你的物料清单，格式：型号 数量&#10;例如：&#10;AC0201FR-0710KL 2500&#10;MR04X1000FTL 2000"
+          class="bom-textarea"
+          @input="parseBom"
+        ></textarea>
+        <div class="input-footer">
+          <span class="line-count">已识别 {{ bomList.length }} 行</span>
+          <button class="btn-clear" @click="clearAll">清空</button>
         </div>
       </div>
 
-      <div class="bom-methods">
-        <!-- 方法一：粘贴文本 -->
-        <div class="bom-method-card">
-          <h2 class="method-title">粘贴物料清单文本</h2>
-          <div class="method-body">
-            <textarea
-              v-model="bomText"
-              class="bom-textarea"
-              placeholder="可手动输入或Excel复制粘贴,示例：AC0201FR-0710KL 250010uF ±10% 16V 30000603 ±20% 10V 1800"
-              rows="6"
-            ></textarea>
-            <div class="method-actions">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="onlySelf" class="checkbox-input" />
-                <span class="checkbox-custom"></span>
-                <span class="checkbox-text">只匹配自营商品</span>
-              </label>
-              <button class="btn-process" @click="handleBomText">开始处理</button>
-            </div>
-          </div>
+      <!-- 解析结果表格 -->
+      <div class="result-section" v-if="bomList.length > 0">
+        <div class="result-header">
+          <h2>识别结果</h2>
+          <span class="result-count">共 {{ totalItems }} 个物料</span>
         </div>
-
-        <!-- 方法二：上传文件 -->
-        <div class="bom-method-card">
-          <h2 class="method-title">上传一个BOM</h2>
-          <div class="method-body">
-            <div class="upload-area" @click="triggerUpload" @dragover.prevent @drop.prevent="handleDrop">
-              <div class="upload-icon">&#x1f4c4;</div>
-              <p class="upload-text">将文件拖拽到此框 或 点击此框上传BOM文件</p>
-              <p class="upload-hint">支持csv/xls/xlsx格式文件, <a :href="bomTemplateUrl" class="download-template">下载BOM模板</a></p>
-              <input
-                ref="fileInput"
-                type="file"
-                accept=".csv,.xls,.xlsx"
-                @change="handleFileUpload"
-                style="display: none"
-              />
-            </div>
-            <div class="method-actions">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="onlySelfUpload" class="checkbox-input" />
-                <span class="checkbox-custom"></span>
-                <span class="checkbox-text">只匹配自营商品</span>
-              </label>
-            </div>
-          </div>
+        <div class="table-container">
+          <table class="bom-table">
+            <thead>
+              <tr>
+                <th width="50">#</th>
+                <th>型号</th>
+                <th width="120">数量</th>
+                <th width="60">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in bomList" :key="index" :class="{ error: !item.quantity }">
+                <td>{{ index + 1 }}</td>
+                <td>
+                  <input
+                    v-model="item.model"
+                    type="text"
+                    placeholder="型号"
+                    @blur="mergeSimilar"
+                  />
+                </td>
+                <td>
+                  <input
+                    v-model="item.quantity"
+                    type="number"
+                    min="1"
+                    placeholder="数量"
+                  />
+                </td>
+                <td>
+                  <button class="btn-delete" @click="deleteItem(index)">删除</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- 管理BOM列表 -->
-      <div class="bom-manage">
-        <nuxt-link to="/user/bom_list" class="manage-link">管理BOM列表</nuxt-link>
-      </div>
-
-      <!-- 底部优势 -->
-      <div class="bom-advantages">
-        <div class="advantage-item">
-          <div class="advantage-icon">优</div>
-          <div class="advantage-text">
-            <span class="advantage-title">原厂授权 正品保障</span>
-          </div>
-        </div>
-        <div class="advantage-item">
-          <div class="advantage-icon">快</div>
-          <div class="advantage-text">
-            <span class="advantage-title">自营现货 极速发货</span>
-          </div>
-        </div>
-        <div class="advantage-item">
-          <div class="advantage-icon">全</div>
-          <div class="advantage-text">
-            <span class="advantage-title">品类齐全 一站采购</span>
-          </div>
-        </div>
-        <div class="advantage-item">
-          <div class="advantage-icon">省</div>
-          <div class="advantage-text">
-            <span class="advantage-title">满299包邮 省心省事</span>
-          </div>
-        </div>
+      <!-- 底部操作按钮 -->
+      <div class="action-section" v-if="bomList.length > 0">
+        <button class="btn-primary" @click="submitBom" :disabled="!hasValidItems">
+          搜索物料
+        </button>
+        <button class="btn-secondary" @click="clearAll">重新输入</button>
       </div>
     </div>
   </div>
@@ -112,70 +93,102 @@ export default {
   data() {
     return {
       bomText: '',
-      onlySelf: true,
-      onlySelfUpload: true,
-      bomTemplateUrl: '/bom_template.xlsx',
-      uploadedFile: null
+      bomList: []
     };
   },
   head() {
-    return { title: '智能BOM配单' };
+    return { title: 'BOM粘贴 - 物料清单导入' };
+  },
+  computed: {
+    totalItems() {
+      return this.bomList.filter(item => item.model && item.quantity).length;
+    },
+    hasValidItems() {
+      return this.totalItems > 0;
+    }
   },
   methods: {
-    async handleBomText() {
+    parseBom() {
       if (!this.bomText.trim()) {
-        this.$message && this.$message.warning('请输入物料清单');
+        this.bomList = [];
         return;
       }
-      try {
-        const res = await this.$axios.post('/pc/bom_process_text', {
-          text: this.bomText,
-          only_self: this.onlySelf ? 1 : 0
-        });
-        if (res.data && res.data.list) {
-          this.$router.push({
-            path: '/bom_result',
-            query: { data: JSON.stringify(res.data.list) }
-          });
+
+      const lines = this.bomText.trim().split('\n');
+      this.bomList = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return { model: '', quantity: '' };
+
+        // 匹配：型号 数量 的格式
+        const parts = trimmed.split(/\s+/);
+        if (parts.length >= 2) {
+          // 最后一个部分尝试转为数字（数量）
+          const quantity = parseInt(parts.pop());
+          const model = parts.join(' ');
+          return {
+            model: model.trim(),
+            quantity: isNaN(quantity) ? '' : quantity
+          };
+        } else {
+          // 只有型号，数量留空
+          return {
+            model: trimmed,
+            quantity: ''
+          };
         }
-      } catch (e) {
-        console.error('BOM处理失败', e);
-      }
+      }).filter(item => item.model.trim()); // 过滤空行
+
+      this.mergeSimilar();
     },
-    triggerUpload() {
-      this.$refs.fileInput.click();
-    },
-    handleDrop(e) {
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        this.uploadedFile = files[0];
-        this.submitFile(files[0]);
-      }
-    },
-    handleFileUpload(e) {
-      const files = e.target.files;
-      if (files.length > 0) {
-        this.uploadedFile = files[0];
-        this.submitFile(files[0]);
-      }
-    },
-    async submitFile(file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('only_self', this.onlySelfUpload ? 1 : 0);
-      try {
-        const res = await this.$axios.post('/pc/bom_upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        if (res.data && res.data.list) {
-          this.$router.push({
-            path: '/bom_result',
-            query: { data: JSON.stringify(res.data.list) }
-          });
+    mergeSimilar() {
+      // 合并相同型号，数量相加
+      const map = new Map();
+      this.bomList.forEach(item => {
+        if (!item.model) return;
+        const key = item.model.trim();
+        if (!key) return;
+        if (map.has(key)) {
+          const exist = map.get(key);
+          if (item.quantity) {
+            exist.quantity = (parseInt(exist.quantity) || 0) + (parseInt(item.quantity) || 0);
+          }
+        } else {
+          map.set(key, { ...item });
         }
-      } catch (e) {
-        console.error('BOM上传失败', e);
+      });
+      if (map.size !== this.bomList.length) {
+        this.bomList = Array.from(map.values());
       }
+    },
+    deleteItem(index) {
+      this.bomList.splice(index, 1);
+    },
+    clearAll() {
+      this.bomText = '';
+      this.bomList = [];
+    },
+    submitBom() {
+      // 过滤有效项，跳转到搜索结果页
+      const validItems = this.bomList
+        .filter(item => item.model && item.quantity)
+        .map(item => ({
+          model: item.model.trim(),
+          quantity: parseInt(item.quantity)
+        }));
+
+      if (validItems.length === 0) {
+        this.$message.warning('请至少填写一个有效的物料');
+        return;
+      }
+
+      // 这里可以跳转到搜索结果页面，或者保存到状态后跳转
+      // 示例：跳转到商品列表页并携带BOM信息
+      this.$router.push({
+        path: '/goods_list',
+        query: {
+          bom: encodeURIComponent(JSON.stringify(validItems))
+        }
+      });
     }
   }
 };
@@ -183,214 +196,126 @@ export default {
 
 <style scoped lang="scss">
 .bom-page {
-  background-color: #f5f5f5;
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  font-weight: bold;
+  background-color: #f5f6f8;
   min-height: 100vh;
-  padding: 20px 0;
+  padding: 30px 0;
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0 20px;
 }
 
-/* Hero 区域 */
-.bom-hero {
-  background: linear-gradient(135deg, #e93323 0%, #d42b1c 100%);
-  border-radius: 6px;
-  padding: 40px;
+/* 页面标题 */
+.page-header {
   text-align: center;
-  margin-bottom: 20px;
-  color: #fff;
+  margin-bottom: 24px;
 
-  .bom-title {
-    font-size: 32px;
-    margin: 0 0 24px 0;
-    font-weight: bold;
-  }
-
-  .bom-features {
-    display: flex;
-    justify-content: center;
-    gap: 60px;
-  }
-
-  .feature-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-
-    .feature-icon {
-      font-size: 24px;
-    }
-
-    .feature-text {
-      font-weight: bold;
-    }
-  }
-}
-
-/* 方法卡片 */
-.bom-methods {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.bom-method-card {
-  flex: 1;
-  background-color: #fff;
-  border-radius: 6px;
-  padding: 28px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-
-  .method-title {
-    font-size: 20px;
-    color: #333;
-    margin: 0 0 20px 0;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #e93323;
-  }
-
-  .method-body {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-}
-
-.bom-textarea {
-  width: 100%;
-  min-height: 120px;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  color: #333;
-  resize: vertical;
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  font-weight: bold;
-  line-height: 1.6;
-
-  &:focus {
-    outline: none;
-    border-color: #e93323;
-    box-shadow: 0 0 0 2px rgba(233, 51, 35, 0.1);
-  }
-
-  &::placeholder {
-    color: #bbb;
-    font-weight: normal;
-  }
-}
-
-.method-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #666;
-  font-weight: normal;
-
-  .checkbox-input {
-    display: none;
-  }
-
-  .checkbox-custom {
-    width: 16px;
-    height: 16px;
-    border: 1px solid #ccc;
-    border-radius: 2px;
-    display: inline-block;
-    position: relative;
-    flex-shrink: 0;
-  }
-
-  .checkbox-input:checked + .checkbox-custom {
-    background-color: #e93323;
-    border-color: #e93323;
-
-    &::after {
-      content: '';
-      position: absolute;
-      left: 5px;
-      top: 2px;
-      width: 5px;
-      height: 9px;
-      border: solid #fff;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
-  }
-
-  .checkbox-text {
-    font-weight: normal;
-  }
-}
-
-.btn-process {
-  padding: 10px 32px;
-  background-color: #e93323;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-size: 15px;
-  cursor: pointer;
-  font-weight: bold;
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  transition: background 0.2s;
-
-  &:hover {
-    background-color: #d42b1c;
-  }
-}
-
-/* 上传区域 */
-.upload-area {
-  border: 2px dashed #ddd;
-  border-radius: 6px;
-  padding: 40px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  background-color: #fafafa;
-
-  &:hover {
-    border-color: #e93323;
-    background-color: #fff8f7;
-  }
-
-  .upload-icon {
-    font-size: 40px;
-    margin-bottom: 12px;
-  }
-
-  .upload-text {
-    font-size: 15px;
+  .page-title {
+    font-size: 28px;
     color: #333;
     margin: 0 0 8px 0;
+    font-weight: 600;
   }
 
-  .upload-hint {
-    font-size: 13px;
+  .page-desc {
+    font-size: 14px;
     color: #999;
     margin: 0;
     font-weight: normal;
+  }
+}
 
-    .download-template {
-      color: #e93323;
-      text-decoration: none;
-      font-weight: bold;
+/* 说明框 */
+.info-box {
+  background: #fff;
+  border-radius: 6px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  border-left: 4px solid #1890ff;
+
+  p {
+    margin: 0 0 12px 0;
+    color: #666;
+    font-size: 14px;
+
+    strong {
+      color: #333;
+    }
+  }
+
+  .example {
+    background: #f6f8fa;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    color: #333;
+    white-space: pre;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+
+  .note {
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 0;
+  }
+}
+
+/* 输入区域 */
+.input-section {
+  background: #fff;
+  border-radius: 6px;
+  padding: 24px;
+  margin-bottom: 24px;
+
+  .input-label {
+    display: block;
+    font-size: 15px;
+    color: #333;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .bom-textarea {
+    width: 100%;
+    min-height: 260px;
+    padding: 16px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:focus {
+      border-color: #1890ff;
+      box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+    }
+  }
+
+  .input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+
+    .line-count {
+      font-size: 13px;
+      color: #999;
+    }
+
+    .btn-clear {
+      background: none;
+      border: none;
+      color: #1890ff;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 12px;
 
       &:hover {
         text-decoration: underline;
@@ -399,63 +324,164 @@ export default {
   }
 }
 
-/* 管理BOM列表 */
-.bom-manage {
-  text-align: right;
-  margin-bottom: 20px;
+/* 结果表格 */
+.result-section {
+  background: #fff;
+  border-radius: 6px;
+  padding: 24px;
+  margin-bottom: 24px;
 
-  .manage-link {
-    color: #e93323;
-    font-size: 14px;
-    text-decoration: none;
+  .result-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
 
-    &:hover {
-      text-decoration: underline;
+    h2 {
+      font-size: 16px;
+      color: #333;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .result-count {
+      margin-left: 12px;
+      font-size: 13px;
+      color: #999;
+      background: #f0f0f0;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .bom-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th {
+      background: #fafafa;
+      text-align: left;
+      padding: 12px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #666;
+      border: 1px solid #e8e8e8;
+    }
+
+    td {
+      padding: 10px;
+      border: 1px solid #e8e8e8;
+
+      input {
+        width: 100%;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        padding: 6px 8px;
+        font-size: 14px;
+        outline: none;
+        box-sizing: border-box;
+
+        &:focus {
+          border-color: #1890ff;
+        }
+      }
+    }
+
+    tr.error {
+      background-color: #fff2f0;
+
+      td {
+        border-color: #ffccc7;
+      }
+    }
+
+    .btn-delete {
+      background: #fff1f0;
+      color: #ff4d4f;
+      border: 1px solid #ffccc7;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+
+      &:hover {
+        background: #ff4d4f;
+        color: #fff;
+        border-color: #ff4d4f;
+      }
     }
   }
 }
 
-/* 底部优势 */
-.bom-advantages {
+/* 操作按钮 */
+.action-section {
   display: flex;
-  background-color: #fff;
-  border-radius: 6px;
-  padding: 24px 0;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  gap: 16px;
+  justify-content: center;
 
-  .advantage-item {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    border-right: 1px solid #eee;
-    padding: 0 20px;
+  .btn-primary {
+    min-width: 160px;
+    background: #1890ff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
 
-    &:last-child {
-      border-right: none;
+    &:hover:not(:disabled) {
+      background: #40a9ff;
+    }
+
+    &:disabled {
+      background: #bfbfbf;
+      cursor: not-allowed;
     }
   }
 
-  .advantage-icon {
-    width: 40px;
-    height: 40px;
-    background-color: #e93323;
-    color: #fff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: bold;
-    flex-shrink: 0;
+  .btn-secondary {
+    min-width: 120px;
+    background: #f5f5f5;
+    color: #666;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 12px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #eaeaea;
+      color: #333;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .bom-page {
+    padding: 16px 0;
   }
 
-  .advantage-title {
-    font-size: 16px;
-    color: #333;
-    font-weight: bold;
+  .page-header .page-title {
+    font-size: 22px;
+  }
+
+  .input-section,
+  .result-section {
+    padding: 16px;
+  }
+
+  .action-section {
+    flex-direction: column;
+
+    .btn-primary,
+    .btn-secondary {
+      width: 100%;
+    }
   }
 }
 </style>
