@@ -142,23 +142,53 @@ echo "\n[4/5] 重载PHP-FPM...\n";
 exec('sudo systemctl reload php-fpm 2>&1', $output);
 echo implode("\n", $output) . "\n";
 
-echo "\n[5/5] 检查文件...\n";
-$fixFile = '/var/www/elect-mall/crmeb/public/fix_all.php';
-if (file_exists($fixFile)) {
-    echo "✓ fix_all.php 已存在: {$fixFile}\n";
-    echo "文件大小: " . filesize($fixFile) . " 字节\n";
+echo "\n[5/7] 安装PC前端依赖...\n";
+$pcDir = '/var/www/elect-mall/template/pc';
+if (is_dir($pcDir)) {
+    chdir($pcDir);
+    exec('npm install --legacy-peer-deps 2>&1', $output);
+    echo implode("\n", $output) . "\n";
+    echo "✓ npm install 完成\n\n";
 } else {
-    echo "✗ fix_all.php 不存在，可能git pull失败\n";
+    echo "✗ PC前端目录不存在: {$pcDir}\n\n";
+}
+
+echo "[6/7] 构建PC前端（Nuxt.js generate）...\n";
+ob_flush();
+flush();
+if (is_dir($pcDir)) {
+    chdir($pcDir);
+    $output = [];
+    exec('npm run generate 2>&1', $output);
+    echo implode("\n", $output) . "\n";
+    echo "✓ npm run generate 完成\n\n";
+} else {
+    echo "✗ PC前端目录不存在: {$pcDir}\n\n";
+}
+
+echo "[7/7] 检查构建结果...\n";
+$homeDir = '/var/www/elect-mall/crmeb/public/home';
+if (is_dir($homeDir)) {
+    $files = glob($homeDir . '/*/index.html');
+    echo "✓ 找到 " . count($files) . " 个页面文件:\n";
+    foreach ($files as $f) {
+        echo "  - " . str_replace($homeDir, '/home', $f) . "\n";
+    }
+} else {
+    echo "✗ home目录不存在\n";
 }
 
 echo "\n=== 完成 ===\n";
-echo "✓ 代码拉取和Nginx配置更新完成\n";
-echo "👉 现在请点击下方链接进入修复页面：\n";
+echo "✓ 代码拉取、Nginx配置更新和前端构建已完成\n";
 echo "</div>\n";
 ?>
 <p class="success">
 ✅ 操作已完成！<br>
-👉 <a href="fix_all.php" target="_blank" style="font-size:18px;background:#27ae60;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;display:inline-block;margin:10px 0">点击这里: 打开 fix_all.php 修复数据库</a>
+👉 <a href="brand_list.html" target="_blank" style="font-size:18px;background:#27ae60;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;display:inline-block;margin:10px 0">测试: brand_list.html</a>
+&nbsp;
+<a href="bom_copy.html" target="_blank" style="font-size:18px;background:#27ae60;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;display:inline-block;margin:10px 0">测试: bom_copy.html</a>
+&nbsp;
+<a href="page/sqdl.html" target="_blank" style="font-size:18px;background:#27ae60;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;display:inline-block;margin:10px 0">测试: 授权代理.html</a>
 </p>
 <p class="error">
 ⚠️ 修复完成后，请务必删除此文件 (web_exec.php) 和 fix_all.php！
