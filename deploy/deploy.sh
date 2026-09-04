@@ -33,8 +33,12 @@ touch "$LOCK_FILE"
 
 log "========== START DEPLOY =========="
 
-# 0. 修复.git目录权限（使用sudo，因为.git可能被root所有）
-log "[0/7] Fix .git permissions (sudo)..."
+# 0. 修复.git目录权限（使用sudo，因为.git可能被root所有或设置了chattr +i）
+log "[0/7] Fix .git permissions (via sudo)..."
+# 关键修复：先移除不可变属性（chattr +i），否则chmod无效
+sudo chattr -R -i "${PROJECT_DIR}/.git" 2>/dev/null || true
+log "[0/7] Immutable flag removed (chattr -i)"
+# 然后修复权限
 sudo chmod -R 777 "${PROJECT_DIR}/.git" 2>/dev/null || true
 sudo find "${PROJECT_DIR}/.git" -type d -exec chmod 777 {} \; 2>/dev/null || true
 sudo find "${PROJECT_DIR}/.git" -type f -exec chmod 666 {} \; 2>/dev/null || true
@@ -121,10 +125,24 @@ log "[7/7] Update Nginx config & restart..."
 if [ -f "${PROJECT_DIR}/deploy/elect-mall.conf" ]; then
     sudo cp "${PROJECT_DIR}/deploy/elect-mall.conf" /etc/nginx/conf.d/elect-mall.conf 2>/dev/null
     if [ $? -eq 0 ]; then
-        log "[7/7] Nginx config updated"
+        log "[7/7] Nginx config updated via sudo cp"
     else
-        log "[7/7] WARN: sudo cp failed, try direct cp..."
-        cp "${PROJECT_DIR}/deploy/elect-mall.conf" /etc/nginx/conf.d/elect-mall.conf 2>/dev/null || true
+        log "[7/7] WARN: sudo cp failed, try PHP file_put_contents..."
+        # 使用PHP写入（不依赖sudo）
+        php -r "
+            \$src = '${PROJECT_DIR}/deploy/elect-mall.conf';
+            \$dst = '/etc/nginx/conf.d/elect-mall.conf';
+            \$content = file_get_contents(\$src);
+            if (\$content !== false) {
+                \$written = file_put_contents(\$dst, \$content);
+                if (\$written !== false) {
+                    echo 'PHP wrote ' . \$written . ' bytes to ' . \$dst;
+                    exit(0);
+                }
+            }
+            echo 'PHP write failed';
+            exit(1);
+        " 2>/dev/null && log "[7/7] Nginx config updated via PHP" || log "[7/7] WARN: All methods failed to write Nginx config"
     fi
 fi
 sudo chown -R nginx:nginx "${PROJECT_DIR}/crmeb/runtime" 2>/dev/null || true
