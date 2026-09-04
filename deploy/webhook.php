@@ -198,6 +198,10 @@ writeLog("[TRIGGER] 收到 main 分支推送");
 
 // 修复Git远程地址（支持URL参数传入token绕过文件权限问题）
 $tokenFromUrl = $_GET['token'] ?? '';
+if (!empty($tokenFromUrl)) {
+    saveGitToken($tokenFromUrl);
+    writeLog("[SETUP] Token saved from URL parameter");
+}
 fixGitRemote($tokenFromUrl);
 
 // 清理过期锁文件
